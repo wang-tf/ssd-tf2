@@ -4,6 +4,7 @@ import numpy as np
 import xml.etree.ElementTree as ET
 from PIL import Image
 import random
+import glob
 
 from box_utils import compute_target
 from image_utils import random_patching, horizontal_flip
@@ -24,11 +25,7 @@ class VOCDataset():
                  new_size, num_examples=-1, augmentation=None):
         super(VOCDataset, self).__init__()
         self.idx_to_name = [
-            'aeroplane', 'bicycle', 'bird', 'boat',
-            'bottle', 'bus', 'car', 'cat', 'chair',
-            'cow', 'diningtable', 'dog', 'horse',
-            'motorbike', 'person', 'pottedplant',
-            'sheep', 'sofa', 'train', 'tvmonitor']
+            'w_safetyhat', 'wo_safetyhat']
         self.name_to_idx = dict([(v, k)
                                  for k, v in enumerate(self.idx_to_name)])
 
@@ -87,12 +84,17 @@ class VOCDataset():
         h, w = orig_shape
         filename = self.ids[index]
         anno_path = os.path.join(self.anno_dir, filename + '.xml')
+        assert os.path.exists(anno_path), anno_path
         objects = ET.parse(anno_path).findall('object')
         boxes = []
         labels = []
 
         for obj in objects:
             name = obj.find('name').text.lower().strip()
+            # filter useless obj
+            if name not in self.idx_to_name:
+                continue
+
             bndbox = obj.find('bndbox')
             xmin = (float(bndbox.find('xmin').text) - 1) / w
             ymin = (float(bndbox.find('ymin').text) - 1) / h
@@ -102,7 +104,8 @@ class VOCDataset():
 
             labels.append(self.name_to_idx[name] + 1)
 
-        return np.array(boxes, dtype=np.float32), np.array(labels, dtype=np.int64)
+        boxes = np.array(boxes, dtype=np.float32)  # .reshape((-1, 4))
+        return boxes, np.array(labels, dtype=np.int64)
 
     def generate(self, subset=None):
         """ The __getitem__ method
@@ -129,6 +132,7 @@ class VOCDataset():
             w, h = img.size
             boxes, labels = self._get_annotation(index, (h, w))
             boxes = tf.constant(boxes, dtype=tf.float32)
+            # print(boxes.shape)
             labels = tf.constant(labels, dtype=tf.int64)
 
             augmentation_method = np.random.choice(self.augmentation)
@@ -142,6 +146,7 @@ class VOCDataset():
             img = (img / 127.0) - 1.0
             img = tf.constant(img, dtype=tf.float32)
 
+            # print(self.default_boxes.shape, boxes.shape)
             gt_confs, gt_locs = compute_target(
                 self.default_boxes, boxes, labels)
 
