@@ -12,7 +12,7 @@ from network import create_ssd
 from losses import create_losses
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--data-dir', default='/diskb/GlodonDataset/HeadDet/v0.1/original')
+parser.add_argument('--data-dir', default='/diskb/GlodonDataset/Head_Person/v0.1/datatang/')
 parser.add_argument('--data-year', default='2012')
 parser.add_argument('--arch', default='ssd300')
 parser.add_argument('--batch-size', default=32, type=int)
@@ -24,13 +24,13 @@ parser.add_argument('--weight-decay', default=5e-4, type=float)
 parser.add_argument('--num-epochs', default=20, type=int)
 parser.add_argument('--checkpoint-dir', default='checkpoints')
 parser.add_argument('--pretrained-type', default='base')
-parser.add_argument('--gpu-id', default='2')
+parser.add_argument('--gpu-id', default='0')
 
 args = parser.parse_args()
 
 os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu_id
 
-NUM_CLASSES = 1
+NUM_CLASSES = 2
 
 
 @tf.function

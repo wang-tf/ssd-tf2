@@ -24,8 +24,7 @@ class VOCDataset():
     def __init__(self, root_dir, year, default_boxes,
                  new_size, num_examples=-1, augmentation=None):
         super(VOCDataset, self).__init__()
-        self.idx_to_name = [
-            'w_safetyhat', 'wo_safetyhat']
+        self.idx_to_name = ['person', 'head']
         self.name_to_idx = dict([(v, k)
                                  for k, v in enumerate(self.idx_to_name)])
 
@@ -92,8 +91,8 @@ class VOCDataset():
         for obj in objects:
             name = obj.find('name').text.lower().strip()
             # filter useless obj
-            if name not in self.idx_to_name:
-                continue
+            # if name not in self.idx_to_name:
+            #     continue
 
             bndbox = obj.find('bndbox')
             xmin = (float(bndbox.find('xmin').text) - 1) / w
@@ -105,7 +104,8 @@ class VOCDataset():
             labels.append(self.name_to_idx[name] + 1)
 
         boxes = np.array(boxes, dtype=np.float32)  # .reshape((-1, 4))
-        return boxes, np.array(labels, dtype=np.int64)
+        labels = np.array(labels, dtype=np.int64)
+        return boxes, labels
 
     def generate(self, subset=None):
         """ The __getitem__ method
@@ -130,9 +130,9 @@ class VOCDataset():
             filename = indices[index]
             img = self._get_image(index)
             w, h = img.size
-            boxes, labels = self._get_annotation(index, (h, w))
+            boxes, labels = self._get_annotation(index, (h, w))  # the shape of boxes must not be (0, )
+            assert boxes.shape[0] != 0, 'the shape of boxes must not be (0, )'
             boxes = tf.constant(boxes, dtype=tf.float32)
-            # print(boxes.shape)
             labels = tf.constant(labels, dtype=tf.int64)
 
             augmentation_method = np.random.choice(self.augmentation)
