@@ -47,7 +47,7 @@ def train_step(imgs, gt_confs, gt_locs, ssd, criterion, optimizer):
 
     loss = conf_loss + loc_loss
     l2_loss = [tf.nn.l2_loss(t) for t in ssd.trainable_variables]
-    l2_loss = args.weight_decay * tf.math.reduce_sum(l2_loss)
+    l2_loss = FLAGS.weight_decay * tf.math.reduce_sum(l2_loss)
     loss += l2_loss
 
   gradients = tape.gradient(loss, ssd.trainable_variables)
@@ -57,25 +57,25 @@ def train_step(imgs, gt_confs, gt_locs, ssd, criterion, optimizer):
 
 
 def main(_):
-  os.makedirs(args.checkpoint_dir, exist_ok=True)
+  os.makedirs(FLAGS.checkpoint_dir, exist_ok=True)
 
   with open('./config.yml') as f:
     cfg = yaml.load(f)
 
   try:
-    config = cfg[args.arch.upper()]
+    config = cfg[FLAGS.arch.upper()]
   except AttributeError:
-    raise ValueError('Unknown architecture: {}'.format(args.arch))
+    raise ValueError('Unknown architecture: {}'.format(FLAGS.arch))
 
   default_boxes = generate_default_boxes(config)
 
   batch_generator, val_generator, info = create_batch_generator(
-    args.data_dir,
-    args.data_year,
+    FLAGS.data_dir,
+    FLAGS.data_year,
     default_boxes,
     config['image_size'],
-    args.batch_size,
-    args.num_batches,
+    FLAGS.batch_size,
+    FLAGS.num_batches,
     mode='train',
     augmentation=[
       'flip'
@@ -83,36 +83,36 @@ def main(_):
 
   try:
     ssd = create_ssd(NUM_CLASSES,
-             args.arch,
-             args.pretrained_type,
-             checkpoint_dir=args.checkpoint_dir)
+             FLAGS.arch,
+             FLAGS.pretrained_type,
+             checkpoint_dir=FLAGS.checkpoint_dir)
   except Exception as e:
     print(e)
     print('The program is exiting...')
     sys.exit()
 
-  criterion = create_losses(args.neg_ratio, NUM_CLASSES)
+  criterion = create_losses(FLAGS.neg_ratio, NUM_CLASSES)
 
-  steps_per_epoch = info['length'] // args.batch_size
+  steps_per_epoch = info['length'] // FLAGS.batch_size
 
   lr_fn = PiecewiseConstantDecay(boundaries=[
-    int(steps_per_epoch * args.num_epochs * 2 / 3),
-    int(steps_per_epoch * args.num_epochs * 5 / 6)
+    int(steps_per_epoch * FLAGS.num_epochs * 2 / 3),
+    int(steps_per_epoch * FLAGS.num_epochs * 5 / 6)
   ],
                    values=[
-                     args.initial_lr, args.initial_lr * 0.1,
-                     args.initial_lr * 0.01
+                     FLAGS.initial_lr, FLAGS.initial_lr * 0.1,
+                     FLAGS.initial_lr * 0.01
                    ])
 
   optimizer = tf.keras.optimizers.SGD(learning_rate=lr_fn,
-                    momentum=args.momentum)
+                    momentum=FLAGS.momentum)
 
   train_log_dir = 'logs/train'
   val_log_dir = 'logs/val'
   train_summary_writer = tf.summary.create_file_writer(train_log_dir)
   val_summary_writer = tf.summary.create_file_writer(val_log_dir)
 
-  for epoch in range(args.num_epochs):
+  for epoch in range(FLAGS.num_epochs):
     avg_loss = 0.0
     avg_conf_loss = 0.0
     avg_loc_loss = 0.0
@@ -156,7 +156,7 @@ def main(_):
 
     if (epoch + 1) % 10 == 0:
       ssd.save_weights(
-        os.path.join(args.checkpoint_dir,
+        os.path.join(FLAGS.checkpoint_dir,
                'ssd_epoch_{}.h5'.format(epoch + 1)))
 
 
