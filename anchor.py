@@ -1,5 +1,6 @@
 import itertools
 import math
+import yaml
 import tensorflow as tf
 
 
@@ -39,7 +40,9 @@ def generate_default_boxes(config):
                 math.sqrt(scales[m] * scales[m + 1])
             ])
 
+            print(ratios[m])
             for ratio in ratios[m]:
+                print(ratio)
                 r = math.sqrt(ratio)
                 default_boxes.append([
                     cx,
@@ -54,9 +57,26 @@ def generate_default_boxes(config):
                     scales[m] / r,
                     scales[m] * r
                 ])
-
+            raise
     default_boxes = tf.constant(default_boxes)
     default_boxes = tf.clip_by_value(default_boxes, 0.0, 1.0)
 
     return default_boxes
+
+
+def test():
+    arch = 'SSD300'
+
+    with open('./config.yml') as f:
+        cfg = yaml.load(f)
+    try:
+        config = cfg[arch.upper()]
+    except AttributeError:
+        raise ValueError('Unknown arhcitecture: {}'.format(arch))
+    
+    default_boxes = generate_default_boxes(config)
+
+
+if __name__ == '__main__':
+    test()
 
