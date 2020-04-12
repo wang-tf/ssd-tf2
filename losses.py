@@ -50,7 +50,7 @@ class SSDLosses(object):
             conf_loss: classification loss
             loc_loss: regression loss
         """
-        tf.assert_equal(gt_confs.get_shape()[:2], confs.get_shape()[:2])
+        print(gt_confs.get_shape(), confs.get_shape())
         cross_entropy = tf.keras.losses.SparseCategoricalCrossentropy(
             from_logits=True, reduction='none')
 
@@ -66,9 +66,10 @@ class SSDLosses(object):
             from_logits=True, reduction='sum')
         smooth_l1_loss = tf.keras.losses.Huber(reduction='sum')
 
-        conf_loss = cross_entropy(
-            gt_confs[tf.math.logical_or(pos_idx, neg_idx)],
-            confs[tf.math.logical_or(pos_idx, neg_idx)])
+        matched_gt_confs = gt_confs[tf.math.logical_or(pos_idx, neg_idx)]
+        matched_confs = confs[tf.math.logical_or(pos_idx, neg_idx)]
+        print(matched_gt_confs.get_shape(), matched_confs.get_shape())
+        conf_loss = cross_entropy(matched_gt_confs, matched_confs)
 
         # regression loss only consist of positive examples
         loc_loss = smooth_l1_loss(

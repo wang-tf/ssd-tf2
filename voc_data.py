@@ -159,11 +159,9 @@ class VOCDataset():
             img = (img / 127.0) - 1.0
             img = tf.constant(img, dtype=tf.float32)
 
-            print(self.default_boxes.shape, boxes.shape)
             gt_confs, gt_locs = compute_target(
                 self.default_boxes, boxes, labels)
 
-            print('gt_confs shape: ', gt_confs.shape)
             yield filename, img, gt_confs, gt_locs
 
 

@@ -42,8 +42,6 @@ def get_args():
 def train_step(imgs, gt_confs, gt_locs, ssd, criterion, optimizer):
   with tf.GradientTape() as tape:
     confs, locs = ssd(imgs)
-    # print(gt_confs.shape, confs.shape)
-    # raise
 
     conf_loss, loc_loss = criterion(confs, locs, gt_confs, gt_locs)
 

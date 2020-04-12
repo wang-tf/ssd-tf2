@@ -23,7 +23,6 @@ def generate_default_boxes(config):
     ratios = config['ratios']
 
     for m, fm_size in enumerate(fm_sizes):
-        print(fm_size*fm_size, len(ratios[m])*2+2)
         for i, j in itertools.product(range(fm_size), repeat=2):
             cx = (j + 0.5) / fm_size
             cy = (i + 0.5) / fm_size
@@ -56,7 +55,6 @@ def generate_default_boxes(config):
                     scales[m] / r,
                     scales[m] * r
                 ])
-    print('default boxes len: ', len(default_boxes))
     default_boxes = tf.constant(default_boxes)
     default_boxes = tf.clip_by_value(default_boxes, 0.0, 1.0)
 

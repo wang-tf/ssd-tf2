@@ -41,7 +41,6 @@ class SSD(Model):
             loc: output of the idx-th regression head
         """
         conf = self.conf_head_layers[idx](x)
-        print(conf.shape)
         conf = tf.reshape(conf, [conf.shape[0], -1, self.num_classes])
 
         loc = self.loc_head_layers[idx](x)
@@ -84,7 +83,6 @@ class SSD(Model):
             confs: list of outputs of all classification heads
             locs: list of outputs of all regression heads
         """
-        print('call x shape: ', x.shape)
         confs = []
         locs = []
         head_idx = 0
@@ -111,11 +109,7 @@ class SSD(Model):
             locs.append(loc)
             head_idx += 1
 
-        for conf in confs:
-            print(conf.shape)
         confs = tf.concat(confs, axis=1)
-        print('confs shape: ', confs.shape)
-        # raise
         locs = tf.concat(locs, axis=1)
 
         return confs, locs
