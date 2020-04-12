@@ -50,13 +50,13 @@ class SSDLosses(object):
             conf_loss: classification loss
             loc_loss: regression loss
         """
+        tf.assert_equal(gt_confs.get_shape()[:2], confs.get_shape()[:2])
         cross_entropy = tf.keras.losses.SparseCategoricalCrossentropy(
             from_logits=True, reduction='none')
 
         # compute classification losses
         # without reduction
-        temp_loss = cross_entropy(
-            gt_confs, confs)
+        temp_loss = cross_entropy(gt_confs, confs)
         pos_idx, neg_idx = hard_negative_mining(
             temp_loss, gt_confs, self.neg_ratio)
 

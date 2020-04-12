@@ -17,23 +17,23 @@ from network import create_ssd
 from losses import create_losses
 
 
-NUM_CLASSES = 2
+NUM_CLASSES = 1
 
 def get_args():
   FLAGS = flags.FLAGS
-  flags.DEFINE_string('data-dir', '/diskb/GlodonDataset/HeadDet/v0.1/original', 'input voc data dir')
-  flags.DEFINE_string('data-year', '2012', 'VOC data year')
-  flags.DEFINE_string('arch', 'ssd300', 'network format')
-  flags.DEFINE_int('batch-size', 12, 'batch size')
-  flags.DEFINE_int('num-batches', -1, 'if -1, use all data')
-  flags.DEFINE_int('neg-ratio', 3, 'negative positive example ratio')
-  flags.DEFINE_float('initial-lr', 1e-3, 'initial learning rate')
+  flags.DEFINE_string('data_dir', '/diskb/GlodonDataset/Rebar/v0.3/DigitalChina_ChallengeDataset_3.3', 'input voc data dir')
+  flags.DEFINE_string('data_year', '2007', 'VOC data year')
+  flags.DEFINE_string('arch', 'ssd800', 'network format')
+  flags.DEFINE_integer('batch_size', 6, 'batch size')
+  flags.DEFINE_integer('num_batches', -1, 'if -1, use all data')
+  flags.DEFINE_integer('neg_ratio', 3, 'negative positive example ratio')
+  flags.DEFINE_float('initial_lr', 1e-3, 'initial learning rate')
   flags.DEFINE_float('momentum', 0.9, '')
-  flags.DEFINE_float('weight-decay', 5e-4, '')
-  flags.DEFINE_int('num-epochs', 20, 'epoch number')
-  flags.DEFINE_string('checkpoint-dir', './checkpoints', 'checkpoint save dir')
-  flags.DEFINE_string('pretrained-type', 'base', '')
-  flags.DEFINE_string('gpu-id', '0', 'gpus using')
+  flags.DEFINE_float('weight_decay', 5e-4, '')
+  flags.DEFINE_integer('num_epochs', 20, 'epoch number')
+  flags.DEFINE_string('checkpoint_dir', './checkpoints', 'checkpoint save dir')
+  flags.DEFINE_string('pretrained_type', 'base', '')
+  flags.DEFINE_string('gpu_id', '0', 'gpus using')
 
   return FLAGS
 
@@ -42,6 +42,8 @@ def get_args():
 def train_step(imgs, gt_confs, gt_locs, ssd, criterion, optimizer):
   with tf.GradientTape() as tape:
     confs, locs = ssd(imgs)
+    # print(gt_confs.shape, confs.shape)
+    # raise
 
     conf_loss, loc_loss = criterion(confs, locs, gt_confs, gt_locs)
 
@@ -57,6 +59,8 @@ def train_step(imgs, gt_confs, gt_locs, ssd, criterion, optimizer):
 
 
 def main(_):
+  os.environ['CUDA_VISIBLE_DEVICES'] = FLAGS.gpu_id
+
   os.makedirs(FLAGS.checkpoint_dir, exist_ok=True)
 
   with open('./config.yml') as f:
@@ -88,7 +92,7 @@ def main(_):
              checkpoint_dir=FLAGS.checkpoint_dir)
   except Exception as e:
     print(e)
-    print('The program is exiting...')
+    print('Can not create ssd. The program is exiting...')
     sys.exit()
 
   criterion = create_losses(FLAGS.neg_ratio, NUM_CLASSES)
@@ -162,5 +166,4 @@ def main(_):
 
 if __name__ == '__main__':
   FLAGS = get_args()
-  os.environ['CUDA_VISIBLE_DEVICES'] = FLAGS.gpu_id
   app.run(main)

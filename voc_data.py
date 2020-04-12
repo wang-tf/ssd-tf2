@@ -24,22 +24,31 @@ class VOCDataset():
     def __init__(self, root_dir, year, default_boxes,
                  new_size, num_examples=-1, augmentation=None):
         super(VOCDataset, self).__init__()
-        self.idx_to_name = ['person', 'head']
+        self.idx_to_name = ['rebar']
         self.name_to_idx = dict([(v, k)
                                  for k, v in enumerate(self.idx_to_name)])
 
         self.data_dir = os.path.join(root_dir, 'VOC{}'.format(year))
         self.image_dir = os.path.join(self.data_dir, 'JPEGImages')
         self.anno_dir = os.path.join(self.data_dir, 'Annotations')
-        self.ids = list(map(lambda x: x[:-4], os.listdir(self.image_dir)))
+        #self.ids = list(map(lambda x: x[:-4], os.listdir(self.image_dir)))
         self.default_boxes = default_boxes
         self.new_size = new_size
 
         if num_examples != -1:
             self.ids = self.ids[:num_examples]
 
-        self.train_ids = self.ids[:int(len(self.ids) * 0.75)]
-        self.val_ids = self.ids[int(len(self.ids) * 0.75):]
+        # self.train_ids = self.ids[:int(len(self.ids) * 0.75)]
+        # self.val_ids = self.ids[int(len(self.ids) * 0.75):]
+        train_name_path = os.path.join(self.data_dir, 'ImageSets/Main/train.txt')
+        val_name_path = os.path.join(self.data_dir, 'ImageSets/Main/val.txt')
+        assert os.path.join(train_name_path), train_name_path
+        assert os.path.join(val_name_path), val_name_path
+        with open(train_name_path) as f:
+            self.train_ids = f.read().strip().split('\n')
+        with open(val_name_path) as f:
+            self.val_ids = f.read().strip().split('\n')
+        self.ids = self.train_ids + self.val_ids
 
         if augmentation == None:
             self.augmentation = ['original']
@@ -131,7 +140,11 @@ class VOCDataset():
             img = self._get_image(index)
             w, h = img.size
             boxes, labels = self._get_annotation(index, (h, w))  # the shape of boxes must not be (0, )
-            assert boxes.shape[0] != 0, 'the shape of boxes must not be (0, )'
+            try:
+                assert boxes.shape[0] != 0, 'the shape of boxes must not be (0, )'
+            except AssertionError as err:
+                print(index, indices[index])
+                raise
             boxes = tf.constant(boxes, dtype=tf.float32)
             labels = tf.constant(labels, dtype=tf.int64)
 
@@ -146,10 +159,11 @@ class VOCDataset():
             img = (img / 127.0) - 1.0
             img = tf.constant(img, dtype=tf.float32)
 
-            # print(self.default_boxes.shape, boxes.shape)
+            print(self.default_boxes.shape, boxes.shape)
             gt_confs, gt_locs = compute_target(
                 self.default_boxes, boxes, labels)
 
+            print('gt_confs shape: ', gt_confs.shape)
             yield filename, img, gt_confs, gt_locs
 
 
