@@ -26,14 +26,14 @@ BATCH_SIZE = 1
 
 def get_args():
   FLAGS = flags.FLAGS
-  flags.DEFINE_string('data_dir', '../dataset')
-  flags.DEFINE_string('data_year', '2007')
-  flags.DEFINE_string('arch', 'ssd800')
-  flags.DEFINE_integer('num_examples', -1)
-  flags.DEFINE_string('pretrained_type', 'specified')
-  flags.DEFINE_string('checkpoint_dir', '')
-  flags.DEFINE_string('checkpoint_path', '')
-  flags.DEFINE_string('gpu_id', '0')
+  flags.DEFINE_string('data_dir', '/diskb/GlodonDataset/Rebar/v0.3/DigitalChina_ChallengeDataset_3.3', 'data dir')
+  flags.DEFINE_string('data_year', '2007', 'voc data year')
+  flags.DEFINE_string('arch', 'ssd800', 'network arch')
+  flags.DEFINE_integer('num_examples', -1, 'image number')
+  flags.DEFINE_string('pretrained_type', 'specified', '')
+  flags.DEFINE_string('checkpoint_dir', '', 'checkpoint dir')
+  flags.DEFINE_string('checkpoint_path', '', 'checkpoint path')
+  flags.DEFINE_string('gpu_id', '0', 'gpus info')
 
   return FLAGS
 
