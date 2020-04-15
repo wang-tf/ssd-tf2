@@ -17,7 +17,7 @@ from network import create_ssd
 from losses import create_losses
 
 
-NUM_CLASSES = 1
+NUM_CLASSES = 2
 
 def get_args():
   FLAGS = flags.FLAGS
@@ -125,8 +125,8 @@ def main(_):
       avg_loss = (avg_loss * i + loss.numpy()) / (i + 1)
       avg_conf_loss = (avg_conf_loss * i + conf_loss.numpy()) / (i + 1)
       avg_loc_loss = (avg_loc_loss * i + loc_loss.numpy()) / (i + 1)
-      if (i + 1) % 50 == 0:
-        print(
+      # if (i + 1) % 50 == 0:
+      print(
           'Epoch: {} Batch {} Time: {:.2}s | Loss: {:.4f} Conf: {:.4f} Loc: {:.4f}'
           .format(epoch + 1, i + 1,
               time.time() - start, avg_loss, avg_conf_loss,
