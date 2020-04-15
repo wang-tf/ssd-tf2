@@ -41,14 +41,23 @@ class VOCDataset():
         # self.train_ids = self.ids[:int(len(self.ids) * 0.75)]
         # self.val_ids = self.ids[int(len(self.ids) * 0.75):]
         train_name_path = os.path.join(self.data_dir, 'ImageSets/Main/train.txt')
+        self.train_ids = []
+        if os.path.exists(train_name_path):
+            with open(train_name_path) as f:
+                self.train_ids = f.read().strip().split('\n')
+            
         val_name_path = os.path.join(self.data_dir, 'ImageSets/Main/val.txt')
-        assert os.path.join(train_name_path), train_name_path
-        assert os.path.join(val_name_path), val_name_path
-        with open(train_name_path) as f:
-            self.train_ids = f.read().strip().split('\n')
-        with open(val_name_path) as f:
-            self.val_ids = f.read().strip().split('\n')
-        self.ids = self.train_ids + self.val_ids
+        self.val_ids = []
+        if os.path.exists(val_name_path):
+            with open(val_name_path) as f:
+                self.val_ids = f.read().strip().split('\n')
+
+        test_name_path = os.path.join(self.data_dir, 'ImageSets/Main/test.txt')
+        self.test_ids = []
+        if os.path.exists(test_name_path):
+            with open(test_name_path) as f:
+                self.test_ids = f.read().strip().split('\n')
+        self.ids = self.train_ids + self.val_ids + self.test_ids
 
         if augmentation == None:
             self.augmentation = ['original']
@@ -132,6 +141,8 @@ class VOCDataset():
             indices = self.train_ids
         elif subset == 'val':
             indices = self.val_ids
+        elif subset == 'test':
+            indices = self.test_ids
         else:
             indices = self.ids
         for index in range(len(indices)):
@@ -193,6 +204,12 @@ def create_batch_generator(root_dir, year, default_boxes,
         val_dataset = val_dataset.batch(batch_size)
 
         return train_dataset.take(num_batches), val_dataset.take(-1), info
+    elif mode == 'test':
+        test_gen = partial(voc.generate, subset='test')
+        test_dataset = tf.data.Dataset.from_generator(
+            test_gen, (tf.string, tf.float32, tf.int64, tf.float32))
+        dataset = test_dataset.batch(batch_size)
+        return dataset.take(num_batches), info
     else:
         dataset = tf.data.Dataset.from_generator(
             voc.generate, (tf.string, tf.float32, tf.int64, tf.float32))

@@ -32,13 +32,13 @@ def get_args():
   flags.DEFINE_integer('num_examples', -1, 'image number')
   flags.DEFINE_string('pretrained_type', 'specified', '')
   flags.DEFINE_string('checkpoint_dir', '', 'checkpoint dir')
-  flags.DEFINE_string('checkpoint_path', '', 'checkpoint path')
+  flags.DEFINE_string('checkpoint_path', './checkpoints/ssd_epoch_20.h5', 'checkpoint path')
   flags.DEFINE_string('gpu_id', '0', 'gpus info')
 
   return FLAGS
 
 
-def predict(imgs, default_boxes):
+def predict(ssd, imgs, default_boxes):
   confs, locs = ssd(imgs)
 
   confs = tf.squeeze(confs, 0)
@@ -57,11 +57,13 @@ def predict(imgs, default_boxes):
   for c in range(1, NUM_CLASSES):
     cls_scores = confs[:, c]
 
-    score_idx = cls_scores > 0.6
+    score_idx = cls_scores > 0.5
     # cls_boxes = tf.boolean_mask(boxes, score_idx)
     # cls_scores = tf.boolean_mask(cls_scores, score_idx)
     cls_boxes = boxes[score_idx]
+    # print(cls_boxes)
     cls_scores = cls_scores[score_idx]
+    # print(cls_scores)
 
     nms_idx = compute_nms(cls_boxes, cls_scores, 0.45, 200)
     cls_boxes = tf.gather(cls_boxes, nms_idx)
@@ -82,7 +84,7 @@ def predict(imgs, default_boxes):
   return boxes, classes, scores
 
 
-def main{_}:
+def main(_):
   os.environ['CUDA_VISIBLE_DEVICES'] = FLAGS.gpu_id
   with open('./config.yml') as f:
     cfg = yaml.load(f)
@@ -116,7 +118,7 @@ def main{_}:
   for i, (filename, imgs, gt_confs, gt_locs) in enumerate(
     tqdm(batch_generator, total=info['length'],
              desc='Testing...', unit='images')):
-    boxes, classes, scores = predict(imgs, default_boxes)
+    boxes, classes, scores = predict(ssd, imgs, default_boxes)
     filename = filename.numpy()[0].decode()
     original_image = Image.open(
             os.path.join(info['image_dir'], '{}.jpg'.format(filename)))
