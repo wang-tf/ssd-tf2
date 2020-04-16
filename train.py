@@ -27,10 +27,10 @@ def get_args():
   flags.DEFINE_integer('batch_size', 6, 'batch size')
   flags.DEFINE_integer('num_batches', -1, 'if -1, use all data')
   flags.DEFINE_integer('neg_ratio', 3, 'negative positive example ratio')
-  flags.DEFINE_float('initial_lr', 0.0004, 'initial learning rate')
+  flags.DEFINE_float('initial_lr', 0.0006, 'initial learning rate')
   flags.DEFINE_float('momentum', 0.9, '')
   flags.DEFINE_float('weight_decay', 5e-4, '')
-  flags.DEFINE_integer('num_epochs', 200, 'epoch number')
+  flags.DEFINE_integer('num_epochs', 400, 'epoch number')
   flags.DEFINE_string('checkpoint_dir', './checkpoints', 'checkpoint save dir')
   flags.DEFINE_string('pretrained_type', 'base', '')
   flags.DEFINE_string('gpu_id', '0', 'gpus using')
@@ -136,14 +136,12 @@ def main(_):
     avg_val_loc_loss = 0.0
     for i, (_, imgs, gt_confs, gt_locs) in enumerate(val_generator):
       val_confs, val_locs = ssd(imgs)
-      val_conf_loss, val_loc_loss = criterion(val_confs, val_locs,
-                          gt_confs, gt_locs)
+
+      val_conf_loss, val_loc_loss = criterion(val_confs, val_locs, gt_confs, gt_locs)
       val_loss = val_conf_loss + val_loc_loss
       avg_val_loss = (avg_val_loss * i + val_loss.numpy()) / (i + 1)
-      avg_val_conf_loss = (avg_val_conf_loss * i +
-                 val_conf_loss.numpy()) / (i + 1)
-      avg_val_loc_loss = (avg_val_loc_loss * i +
-                val_loc_loss.numpy()) / (i + 1)
+      avg_val_conf_loss = (avg_val_conf_loss * i + val_conf_loss.numpy()) / (i + 1)
+      avg_val_loc_loss = (avg_val_loc_loss * i + val_loc_loss.numpy()) / (i + 1)
 
     with train_summary_writer.as_default():
       tf.summary.scalar('loss', avg_loss, step=epoch)
@@ -156,11 +154,11 @@ def main(_):
       tf.summary.scalar('loc_loss', avg_val_loc_loss, step=epoch)
 
     if (epoch + 1) % 10 == 0:
-      ssd.save_weights(
-        os.path.join(FLAGS.checkpoint_dir,
-               'ssd_epoch_{}.h5'.format(epoch + 1)))
+      h5_file_path = os.path.join(FLAGS.checkpoint_dir, f'ssd_epoch_{epoch+1}.h5')
+      ssd.save_weights(h5_file_path)
 
 
 if __name__ == '__main__':
   FLAGS = get_args()
   app.run(main)
+
