@@ -27,7 +27,7 @@ def get_args():
   flags.DEFINE_integer('batch_size', 6, 'batch size')
   flags.DEFINE_integer('num_batches', -1, 'if -1, use all data')
   flags.DEFINE_integer('neg_ratio', 3, 'negative positive example ratio')
-  flags.DEFINE_float('initial_lr', 0.004, 'initial learning rate')
+  flags.DEFINE_float('initial_lr', 0.0004, 'initial learning rate')
   flags.DEFINE_float('momentum', 0.9, '')
   flags.DEFINE_float('weight_decay', 5e-4, '')
   flags.DEFINE_integer('num_epochs', 200, 'epoch number')
