@@ -24,8 +24,7 @@ class VOCDataset():
     def __init__(self, root_dir, year, default_boxes,
                  new_size, num_examples=-1, augmentation=None):
         super(VOCDataset, self).__init__()
-        self.idx_to_name = [
-            'w_safetyhat', 'wo_safetyhat']
+        self.idx_to_name = ['w_safetyhat', 'wo_safetyhat']
         self.name_to_idx = dict([(v, k)
                                  for k, v in enumerate(self.idx_to_name)])
 

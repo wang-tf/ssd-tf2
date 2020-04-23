@@ -5,24 +5,25 @@ from tensorflow.keras import Sequential
 
 def create_vgg16_layers():
     vgg16_conv4 = [
+        # conv1
         layers.Conv2D(64, 3, padding='same', activation='relu'),
         layers.Conv2D(64, 3, padding='same', activation='relu'),
         layers.MaxPool2D(2, 2, padding='same'),
-
+        # conv2
         layers.Conv2D(128, 3, padding='same', activation='relu'),
         layers.Conv2D(128, 3, padding='same', activation='relu'),
         layers.MaxPool2D(2, 2, padding='same'),
-
+        # conv3
         layers.Conv2D(256, 3, padding='same', activation='relu'),
         layers.Conv2D(256, 3, padding='same', activation='relu'),
         layers.Conv2D(256, 3, padding='same', activation='relu'),
         layers.MaxPool2D(2, 2, padding='same'),
-
+        # conv4
         layers.Conv2D(512, 3, padding='same', activation='relu'),
         layers.Conv2D(512, 3, padding='same', activation='relu'),
         layers.Conv2D(512, 3, padding='same', activation='relu'),
         layers.MaxPool2D(2, 2, padding='same'),
-
+        # conv5
         layers.Conv2D(512, 3, padding='same', activation='relu'),
         layers.Conv2D(512, 3, padding='same', activation='relu'),
         layers.Conv2D(512, 3, padding='same', activation='relu'),
