@@ -1,9 +1,14 @@
-import argparse
-import tensorflow as tf
+#!/usr/bin/env python3
+# coding:utf-8
+
+
 import os
 import sys
 import time
 import yaml
+from absl import flags
+from absl import app
+import tensorflow as tf
 
 from tensorflow.keras.optimizers.schedules import PiecewiseConstantDecay
 from voc_data import create_batch_generator
@@ -11,149 +16,149 @@ from anchor import generate_default_boxes
 from network import create_ssd
 from losses import create_losses
 
-parser = argparse.ArgumentParser()
-parser.add_argument('--data-dir', default='/diskb/GlodonDataset/HeadDet/v0.1/original')
-parser.add_argument('--data-year', default='2012')
-parser.add_argument('--arch', default='ssd300')
-parser.add_argument('--batch-size', default=32, type=int)
-parser.add_argument('--num-batches', default=-1, type=int)
-parser.add_argument('--neg-ratio', default=3, type=int)
-parser.add_argument('--initial-lr', default=1e-3, type=float)
-parser.add_argument('--momentum', default=0.9, type=float)
-parser.add_argument('--weight-decay', default=5e-4, type=float)
-parser.add_argument('--num-epochs', default=20, type=int)
-parser.add_argument('--checkpoint-dir', default='checkpoints')
-parser.add_argument('--pretrained-type', default='base')
-parser.add_argument('--gpu-id', default='2')
 
-args = parser.parse_args()
+NUM_CLASSES = 2
 
-os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu_id
+def get_args():
+  FLAGS = flags.FLAGS
+  flags.DEFINE_string('data_dir', '/diskb/GlodonDataset/Rebar/v0.3/DigitalChina_ChallengeDataset_3.3', 'input voc data dir')
+  flags.DEFINE_string('data_year', '2007', 'VOC data year')
+  flags.DEFINE_string('arch', 'ssd800', 'network format')
+  flags.DEFINE_integer('batch_size', 6, 'batch size')
+  flags.DEFINE_integer('num_batches', -1, 'if -1, use all data')
+  flags.DEFINE_integer('neg_ratio', 3, 'negative positive example ratio')
+  flags.DEFINE_float('initial_lr', 0.0006, 'initial learning rate')
+  flags.DEFINE_float('momentum', 0.9, '')
+  flags.DEFINE_float('weight_decay', 5e-4, '')
+  flags.DEFINE_integer('num_epochs', 400, 'epoch number')
+  flags.DEFINE_string('checkpoint_dir', './checkpoints', 'checkpoint save dir')
+  flags.DEFINE_string('pretrained_type', 'base', '')
+  flags.DEFINE_string('gpu_id', '0', 'gpus using')
 
-NUM_CLASSES = 1
+  return FLAGS
 
 
 @tf.function
 def train_step(imgs, gt_confs, gt_locs, ssd, criterion, optimizer):
-    with tf.GradientTape() as tape:
-        confs, locs = ssd(imgs)
+  with tf.GradientTape() as tape:
+    confs, locs = ssd(imgs)
 
-        conf_loss, loc_loss = criterion(confs, locs, gt_confs, gt_locs)
+    conf_loss, loc_loss = criterion(confs, locs, gt_confs, gt_locs)
 
-        loss = conf_loss + loc_loss
-        l2_loss = [tf.nn.l2_loss(t) for t in ssd.trainable_variables]
-        l2_loss = args.weight_decay * tf.math.reduce_sum(l2_loss)
-        loss += l2_loss
+    loss = conf_loss + loc_loss
+    l2_loss = [tf.nn.l2_loss(t) for t in ssd.trainable_variables]
+    l2_loss = FLAGS.weight_decay * tf.math.reduce_sum(l2_loss)
+    loss += l2_loss
 
-    gradients = tape.gradient(loss, ssd.trainable_variables)
-    optimizer.apply_gradients(zip(gradients, ssd.trainable_variables))
+  gradients = tape.gradient(loss, ssd.trainable_variables)
+  optimizer.apply_gradients(zip(gradients, ssd.trainable_variables))
 
-    return loss, conf_loss, loc_loss, l2_loss
+  return loss, conf_loss, loc_loss, l2_loss
 
 
-def main():
-    os.makedirs(args.checkpoint_dir, exist_ok=True)
+def main(_):
+  os.environ['CUDA_VISIBLE_DEVICES'] = FLAGS.gpu_id
 
-    with open('./config.yml') as f:
-        cfg = yaml.load(f)
+  os.makedirs(FLAGS.checkpoint_dir, exist_ok=True)
 
-    try:
-        config = cfg[args.arch.upper()]
-    except AttributeError:
-        raise ValueError('Unknown architecture: {}'.format(args.arch))
+  with open('./config.yml') as f:
+    cfg = yaml.load(f)
 
-    default_boxes = generate_default_boxes(config)
+  try:
+    config = cfg[FLAGS.arch.upper()]
+  except AttributeError:
+    raise ValueError('Unknown architecture: {}'.format(FLAGS.arch))
 
-    batch_generator, val_generator, info = create_batch_generator(
-        args.data_dir,
-        args.data_year,
-        default_boxes,
-        config['image_size'],
-        args.batch_size,
-        args.num_batches,
-        mode='train',
-        augmentation=[
-            'flip'
-        ])  # the patching algorithm is currently causing bottleneck sometimes
+  default_boxes = generate_default_boxes(config)
 
-    try:
-        ssd = create_ssd(NUM_CLASSES,
-                         args.arch,
-                         args.pretrained_type,
-                         checkpoint_dir=args.checkpoint_dir)
-    except Exception as e:
-        print(e)
-        print('The program is exiting...')
-        sys.exit()
+  batch_generator, val_generator, info = create_batch_generator(
+    FLAGS.data_dir,
+    FLAGS.data_year,
+    default_boxes,
+    config['image_size'],
+    FLAGS.batch_size,
+    FLAGS.num_batches,
+    mode='train',
+    augmentation=[
+      'flip'
+    ])  # the patching algorithm is currently causing bottleneck sometimes
 
-    criterion = create_losses(args.neg_ratio, NUM_CLASSES)
+  try:
+    ssd = create_ssd(NUM_CLASSES,
+             FLAGS.arch,
+             FLAGS.pretrained_type,
+             checkpoint_dir=FLAGS.checkpoint_dir)
+  except Exception as e:
+    print(e)
+    print('Can not create ssd. The program is exiting...')
+    sys.exit()
 
-    steps_per_epoch = info['length'] // args.batch_size
+  criterion = create_losses(FLAGS.neg_ratio, NUM_CLASSES)
 
-    lr_fn = PiecewiseConstantDecay(boundaries=[
-        int(steps_per_epoch * args.num_epochs * 2 / 3),
-        int(steps_per_epoch * args.num_epochs * 5 / 6)
-    ],
-                                   values=[
-                                       args.initial_lr, args.initial_lr * 0.1,
-                                       args.initial_lr * 0.01
-                                   ])
+  steps_per_epoch = info['length'] // FLAGS.batch_size
 
-    optimizer = tf.keras.optimizers.SGD(learning_rate=lr_fn,
-                                        momentum=args.momentum)
+  lr_fn = PiecewiseConstantDecay(boundaries=[
+    int(steps_per_epoch * FLAGS.num_epochs * 2 / 3),
+    int(steps_per_epoch * FLAGS.num_epochs * 5 / 6)
+  ],
+                   values=[
+                     FLAGS.initial_lr, FLAGS.initial_lr * 0.1,
+                     FLAGS.initial_lr * 0.01
+                   ])
 
-    train_log_dir = 'logs/train'
-    val_log_dir = 'logs/val'
-    train_summary_writer = tf.summary.create_file_writer(train_log_dir)
-    val_summary_writer = tf.summary.create_file_writer(val_log_dir)
+  optimizer = tf.keras.optimizers.SGD(learning_rate=lr_fn,
+                    momentum=FLAGS.momentum)
 
-    for epoch in range(args.num_epochs):
-        avg_loss = 0.0
-        avg_conf_loss = 0.0
-        avg_loc_loss = 0.0
-        start = time.time()
-        for i, (_, imgs, gt_confs, gt_locs) in enumerate(batch_generator):
-            loss, conf_loss, loc_loss, l2_loss = train_step(
-                imgs, gt_confs, gt_locs, ssd, criterion, optimizer)
-            avg_loss = (avg_loss * i + loss.numpy()) / (i + 1)
-            avg_conf_loss = (avg_conf_loss * i + conf_loss.numpy()) / (i + 1)
-            avg_loc_loss = (avg_loc_loss * i + loc_loss.numpy()) / (i + 1)
-            if (i + 1) % 50 == 0:
-                print(
-                    'Epoch: {} Batch {} Time: {:.2}s | Loss: {:.4f} Conf: {:.4f} Loc: {:.4f}'
-                    .format(epoch + 1, i + 1,
-                            time.time() - start, avg_loss, avg_conf_loss,
-                            avg_loc_loss))
+  train_log_dir = 'logs/train'
+  val_log_dir = 'logs/val'
+  train_summary_writer = tf.summary.create_file_writer(train_log_dir)
+  val_summary_writer = tf.summary.create_file_writer(val_log_dir)
 
-        avg_val_loss = 0.0
-        avg_val_conf_loss = 0.0
-        avg_val_loc_loss = 0.0
-        for i, (_, imgs, gt_confs, gt_locs) in enumerate(val_generator):
-            val_confs, val_locs = ssd(imgs)
-            val_conf_loss, val_loc_loss = criterion(val_confs, val_locs,
-                                                    gt_confs, gt_locs)
-            val_loss = val_conf_loss + val_loc_loss
-            avg_val_loss = (avg_val_loss * i + val_loss.numpy()) / (i + 1)
-            avg_val_conf_loss = (avg_val_conf_loss * i +
-                                 val_conf_loss.numpy()) / (i + 1)
-            avg_val_loc_loss = (avg_val_loc_loss * i +
-                                val_loc_loss.numpy()) / (i + 1)
+  for epoch in range(FLAGS.num_epochs):
+    avg_loss = 0.0
+    avg_conf_loss = 0.0
+    avg_loc_loss = 0.0
+    start = time.time()
+    for i, (_, imgs, gt_confs, gt_locs) in enumerate(batch_generator):
+      loss, conf_loss, loc_loss, l2_loss = train_step(
+        imgs, gt_confs, gt_locs, ssd, criterion, optimizer)
+      avg_loss = (avg_loss * i + loss.numpy()) / (i + 1)
+      avg_conf_loss = (avg_conf_loss * i + conf_loss.numpy()) / (i + 1)
+      avg_loc_loss = (avg_loc_loss * i + loc_loss.numpy()) / (i + 1)
+      # if (i) % 50 == 0:
+    print('Epoch: {} Batch {} Time: {:.2}s | Loss: {:.4f} Conf: {:.4f} Loc: {:.4f}'
+          .format(epoch + 1, i + 1,
+              time.time() - start, avg_loss, avg_conf_loss,
+              avg_loc_loss))
 
-        with train_summary_writer.as_default():
-            tf.summary.scalar('loss', avg_loss, step=epoch)
-            tf.summary.scalar('conf_loss', avg_conf_loss, step=epoch)
-            tf.summary.scalar('loc_loss', avg_loc_loss, step=epoch)
+    avg_val_loss = 0.0
+    avg_val_conf_loss = 0.0
+    avg_val_loc_loss = 0.0
+    for i, (_, imgs, gt_confs, gt_locs) in enumerate(val_generator):
+      val_confs, val_locs = ssd(imgs)
 
-        with val_summary_writer.as_default():
-            tf.summary.scalar('loss', avg_val_loss, step=epoch)
-            tf.summary.scalar('conf_loss', avg_val_conf_loss, step=epoch)
-            tf.summary.scalar('loc_loss', avg_val_loc_loss, step=epoch)
+      val_conf_loss, val_loc_loss = criterion(val_confs, val_locs, gt_confs, gt_locs)
+      val_loss = val_conf_loss + val_loc_loss
+      avg_val_loss = (avg_val_loss * i + val_loss.numpy()) / (i + 1)
+      avg_val_conf_loss = (avg_val_conf_loss * i + val_conf_loss.numpy()) / (i + 1)
+      avg_val_loc_loss = (avg_val_loc_loss * i + val_loc_loss.numpy()) / (i + 1)
 
-        if (epoch + 1) % 10 == 0:
-            ssd.save_weights(
-                os.path.join(args.checkpoint_dir,
-                             'ssd_epoch_{}.h5'.format(epoch + 1)))
+    with train_summary_writer.as_default():
+      tf.summary.scalar('loss', avg_loss, step=epoch)
+      tf.summary.scalar('conf_loss', avg_conf_loss, step=epoch)
+      tf.summary.scalar('loc_loss', avg_loc_loss, step=epoch)
+
+    with val_summary_writer.as_default():
+      tf.summary.scalar('loss', avg_val_loss, step=epoch)
+      tf.summary.scalar('conf_loss', avg_val_conf_loss, step=epoch)
+      tf.summary.scalar('loc_loss', avg_val_loc_loss, step=epoch)
+
+    if (epoch + 1) % 10 == 0:
+      h5_file_path = os.path.join(FLAGS.checkpoint_dir, f'ssd_epoch_{epoch+1}.h5')
+      ssd.save_weights(h5_file_path)
 
 
 if __name__ == '__main__':
-    main()
+  FLAGS = get_args()
+  app.run(main)
+
