@@ -24,7 +24,7 @@ class VOCDataset():
     def __init__(self, root_dir, year, default_boxes,
                  new_size, num_examples=-1, augmentation=None):
         super(VOCDataset, self).__init__()
-        self.idx_to_name = ['rebar']
+        self.idx_to_name = ['head']
         self.name_to_idx = dict([(v, k)
                                  for k, v in enumerate(self.idx_to_name)])
 
@@ -149,6 +149,11 @@ class VOCDataset():
             img = self._get_image(index)
             w, h = img.size
             boxes, labels = self._get_annotation(index)  # the shape of boxes must not be (0, )
+
+            # 存在没有标签的图片
+            if boxes.shape[0] == 0:
+                continue
+
             boxes = boxes / [w, h, w, h]
             try:
                 assert boxes.shape[0] != 0, 'the shape of boxes must not be (0, )'

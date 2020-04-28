@@ -10,18 +10,18 @@ from absl import flags
 from absl import app
 import tensorflow as tf
 
-from tensorflow.keras.optimizers.schedules import PiecewiseConstantDecay
 from voc_data import create_batch_generator
 from anchor import generate_default_boxes
 from network import create_ssd
 from losses import create_losses
 
-
+# need include background
 NUM_CLASSES = 2
+
 
 def get_args():
   FLAGS = flags.FLAGS
-  flags.DEFINE_string('data_dir', '/diskb/GlodonDataset/Rebar/v0.3/DigitalChina_ChallengeDataset_3.3', 'input voc data dir')
+  flags.DEFINE_string('data_dir', None, 'input voc data dir')
   flags.DEFINE_string('data_year', '2007', 'VOC data year')
   flags.DEFINE_string('arch', 'ssd800', 'network format')
   flags.DEFINE_integer('batch_size', 6, 'batch size')
@@ -33,8 +33,9 @@ def get_args():
   flags.DEFINE_integer('num_epochs', 400, 'epoch number')
   flags.DEFINE_string('checkpoint_dir', './checkpoints', 'checkpoint save dir')
   flags.DEFINE_string('pretrained_type', 'base', '')
-  flags.DEFINE_string('gpu_id', '0', 'gpus using')
+  flags.DEFINE_string('gpus', '0', 'gpus using')
 
+  flags.mark_flag_as_required('data_dir')
   return FLAGS
 
 
@@ -57,7 +58,7 @@ def train_step(imgs, gt_confs, gt_locs, ssd, criterion, optimizer):
 
 
 def main(_):
-  os.environ['CUDA_VISIBLE_DEVICES'] = FLAGS.gpu_id
+  os.environ['CUDA_VISIBLE_DEVICES'] = FLAGS.gpus
 
   os.makedirs(FLAGS.checkpoint_dir, exist_ok=True)
 
@@ -97,7 +98,7 @@ def main(_):
 
   steps_per_epoch = info['length'] // FLAGS.batch_size
 
-  lr_fn = PiecewiseConstantDecay(boundaries=[
+  lr_fn = tf.keras.optimizers.schedules.PiecewiseConstantDecay(boundaries=[
     int(steps_per_epoch * FLAGS.num_epochs * 2 / 3),
     int(steps_per_epoch * FLAGS.num_epochs * 5 / 6)
   ],
