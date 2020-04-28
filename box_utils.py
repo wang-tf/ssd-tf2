@@ -108,11 +108,15 @@ def encode(default_boxes, boxes, variance=[0.1, 0.2]):
     # Convert boxes to (cx, cy, w, h) format
     transformed_boxes = transform_corner_to_center(boxes)
 
-    locs = tf.concat([
-        (transformed_boxes[..., :2] - default_boxes[:, :2]
-         ) / (default_boxes[:, 2:] * variance[0]),
-        tf.math.log(transformed_boxes[..., 2:] / default_boxes[:, 2:]) / variance[1]],
-        axis=-1)
+    cxcy_locs = transformed_boxes[..., :2]
+    cxcy_bias = cxcy_locs - default_boxes[:, :2]
+    cxcy_bias_rate = cxcy_bias / default_boxes[:, 2:]
+
+    wh_locs = transformed_boxes[..., 2:]
+    wh_rate = wh_locs / default_boxes[:, 2:]
+    wh_log = tf.math.log(wh_rate)
+
+    locs = tf.concat([cxcy_bias_rate / variance[0], wh_log / variance[1]], axis=-1)
 
     return locs
 
@@ -129,10 +133,14 @@ def decode(default_boxes, locs, variance=[0.1, 0.2]):
         boxes: tensor (num_default, 4)
                of format (xmin, ymin, xmax, ymax)
     """
-    locs = tf.concat([
-        locs[..., :2] * variance[0] *
-        default_boxes[:, 2:] + default_boxes[:, :2],
-        tf.math.exp(locs[..., 2:] * variance[1]) * default_boxes[:, 2:]], axis=-1)
+    cxcy_bias_rate = locs[..., :2] * variance[0]
+    cxcy_bias = cxcy_bias_rate * default_boxes[:, 2:]
+    cxcy_locs = cxcy_bias + default_boxes[:, :2]
+
+    wh_rate = tf.math.exp(locs[..., 2:] * variance[1])
+    wh_locs = wh_rate * default_boxes[:, 2:]
+
+    locs = tf.concat([cxcy_locs, wh_locs], axis=-1)
 
     boxes = transform_center_to_corner(locs)
 

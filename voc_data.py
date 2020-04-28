@@ -69,9 +69,6 @@ class VOCDataset():
 
     def _get_image(self, index):
         """ Method to read image from file
-            then resize to (300, 300)
-            then subtract by ImageNet's mean
-            then convert to Tensor
 
         Args:
             index: the index to get filename from self.ids
@@ -85,20 +82,18 @@ class VOCDataset():
 
         return img
 
-    def _get_annotation(self, index, orig_shape):
+    def _get_annotation(self, index):
         """ Method to read annotation from file
             Boxes are normalized to image size
             Integer labels are increased by 1
 
         Args:
             index: the index to get filename from self.ids
-            orig_shape: image's original shape
 
         Returns:
             boxes: numpy array of shape (num_gt, 4)
             labels: numpy array of shape (num_gt,)
         """
-        h, w = orig_shape
         filename = self.ids[index]
         anno_path = os.path.join(self.anno_dir, filename + '.xml')
         assert os.path.exists(anno_path), anno_path
@@ -113,10 +108,10 @@ class VOCDataset():
             #     continue
 
             bndbox = obj.find('bndbox')
-            xmin = (float(bndbox.find('xmin').text) - 1) / w
-            ymin = (float(bndbox.find('ymin').text) - 1) / h
-            xmax = (float(bndbox.find('xmax').text) - 1) / w
-            ymax = (float(bndbox.find('ymax').text) - 1) / h
+            xmin = (float(bndbox.find('xmin').text) - 1)
+            ymin = (float(bndbox.find('ymin').text) - 1)
+            xmax = (float(bndbox.find('xmax').text) - 1)
+            ymax = (float(bndbox.find('ymax').text) - 1)
             boxes.append([xmin, ymin, xmax, ymax])
 
             labels.append(self.name_to_idx[name] + 1)
@@ -128,6 +123,9 @@ class VOCDataset():
     def generate(self, subset=None):
         """ The __getitem__ method
             so that the object can be iterable
+            the imaget was resized to (300, 300)
+            then subtract by ImageNet's mean
+            then convert to Tensor
 
         Args:
             index: the index to get filename from self.ids
@@ -150,7 +148,8 @@ class VOCDataset():
             filename = indices[index]
             img = self._get_image(index)
             w, h = img.size
-            boxes, labels = self._get_annotation(index, (h, w))  # the shape of boxes must not be (0, )
+            boxes, labels = self._get_annotation(index)  # the shape of boxes must not be (0, )
+            boxes = boxes / [w, h, w, h]
             try:
                 assert boxes.shape[0] != 0, 'the shape of boxes must not be (0, )'
             except AssertionError as err:
@@ -165,13 +164,13 @@ class VOCDataset():
             elif augmentation_method == 'flip':
                 img, boxes, labels = horizontal_flip(img, boxes, labels)
 
-            img = np.array(img.resize(
-                (self.new_size, self.new_size)), dtype=np.float32)
+            # resize image
+            img = np.array(img.resize((self.new_size, self.new_size)), dtype=np.float32)
+            # normalize
             img = (img / 127.0) - 1.0
             img = tf.constant(img, dtype=tf.float32)
 
-            gt_confs, gt_locs = compute_target(
-                self.default_boxes, boxes, labels)
+            gt_confs, gt_locs = compute_target(self.default_boxes, boxes, labels)
 
             yield filename, img, gt_confs, gt_locs
 

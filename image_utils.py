@@ -2,6 +2,7 @@ import os
 from PIL import Image
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
+import cv2
 import random
 import numpy as np
 import tensorflow as tf
@@ -42,35 +43,22 @@ class ImageVisualizer(object):
             labels: numpy array (num_boxes)
             name: name of image to be saved
         """
-        plt.figure()
-        fig, ax = plt.subplots(1)
-        ax.imshow(img)
         save_path = os.path.join(self.save_dir, name)
 
         for i, box in enumerate(boxes):
             idx = labels[i] - 1
             cls_name = self.idx_to_name[idx]
-            top_left = (box[0], box[1])
-            bot_right = (box[2], box[3])
-            ax.add_patch(patches.Rectangle(
-                (box[0], box[1]),
-                box[2] - box[0], box[3] - box[1],
-                linewidth=2, edgecolor=(0., 1., 0.),
-                facecolor="none"))
-            plt.text(
-                box[0],
-                box[1],
-                s=cls_name,
-                color="white",
-                verticalalignment="top",
-                bbox={"color": (0., 1., 0.), "pad": 0},
-            )
+            left_top = (box[1], box[0])
+            right_bottom = (box[3], box[2])
+            print(box)
+            box = list(map(int, box))
+            cv2.rectangle(img, left_top, right_bottom, (0, 255, 0))
+            cv2.putText(img, cls_name, left_top, cv2.FONT_HERSHEY_SIMPLEX, 1.2, (0, 255, 0), 2)
+            #cv2.imshow('debug', img)
+            #cv2.waitKey()
 
-        plt.axis("off")
-        # plt.gca().xaxis.set_major_locator(NullLocator())
-        # plt.gca().yaxis.set_major_locator(NullLocator())
-        plt.savefig(save_path, bbox_inches="tight", pad_inches=0.0)
-        plt.close('all')
+        cv2.imwrite(save_path, img)
+        # raise
 
 
 def generate_patch(boxes, threshold):

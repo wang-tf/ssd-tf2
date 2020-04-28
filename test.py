@@ -13,11 +13,13 @@ from absl import logging
 
 from anchor import generate_default_boxes
 from box_utils import decode, compute_nms
+from box_utils import encode
 from voc_data import create_batch_generator
 from image_utils import ImageVisualizer
 from losses import create_losses
 from network import create_ssd
 from PIL import Image
+import cv2
 
 
 NUM_CLASSES = 2
@@ -38,13 +40,13 @@ def get_args():
   return FLAGS
 
 
-def predict(ssd, imgs, default_boxes):
+def predict(ssd, imgs, default_boxes, conf_threshold, iou_threshold, max_detect_num):
+  # inference
   confs, locs = ssd(imgs)
-
   confs = tf.squeeze(confs, 0)
   locs = tf.squeeze(locs, 0)
 
-  confs = tf.math.softmax(confs, axis=-1)
+  confs = tf.nn.softmax(confs, axis=-1)
   classes = tf.math.argmax(confs, axis=-1)
   scores = tf.math.reduce_max(confs, axis=-1)
 
@@ -54,10 +56,11 @@ def predict(ssd, imgs, default_boxes):
   out_labels = []
   out_scores = []
 
+  # pass background
   for c in range(1, NUM_CLASSES):
     cls_scores = confs[:, c]
 
-    score_idx = cls_scores > 0.5
+    score_idx = cls_scores > conf_threshold
     # cls_boxes = tf.boolean_mask(boxes, score_idx)
     # cls_scores = tf.boolean_mask(cls_scores, score_idx)
     cls_boxes = boxes[score_idx]
@@ -65,7 +68,7 @@ def predict(ssd, imgs, default_boxes):
     cls_scores = cls_scores[score_idx]
     # print(cls_scores)
 
-    nms_idx = compute_nms(cls_boxes, cls_scores, 0.45, 200)
+    nms_idx = compute_nms(cls_boxes, cls_scores, iou_threshold, max_detect_num)
     cls_boxes = tf.gather(cls_boxes, nms_idx)
     cls_scores = tf.gather(cls_scores, nms_idx)
     cls_labels = [c] * cls_boxes.shape[0]
@@ -85,7 +88,9 @@ def predict(ssd, imgs, default_boxes):
 
 
 def main(_):
+  # get gpu info
   os.environ['CUDA_VISIBLE_DEVICES'] = FLAGS.gpu_id
+
   with open('./config.yml') as f:
     cfg = yaml.load(f)
 
@@ -96,38 +101,28 @@ def main(_):
 
   default_boxes = generate_default_boxes(config)
 
-  batch_generator, info = create_batch_generator(
-        FLAGS.data_dir, FLAGS.data_year, default_boxes,
-        config['image_size'],
+  batch_generator, info = create_batch_generator(FLAGS.data_dir, FLAGS.data_year, default_boxes, config['image_size'],
         BATCH_SIZE, FLAGS.num_examples, mode='test')
 
-  try:
-    ssd = create_ssd(NUM_CLASSES, FLAGS.arch,
-                         FLAGS.pretrained_type,
-                         FLAGS.checkpoint_dir,
-                         FLAGS.checkpoint_path)
-  except Exception as e:
-    print(e)
-    print('The program is exiting...')
-    sys.exit()
+  # create network
+  ssd = create_ssd(NUM_CLASSES, FLAGS.arch, FLAGS.pretrained_type, FLAGS.checkpoint_dir, FLAGS.checkpoint_path)
 
   os.makedirs('outputs/images', exist_ok=True)
   os.makedirs('outputs/detects', exist_ok=True)
   visualizer = ImageVisualizer(info['idx_to_name'], save_dir='outputs/images')
 
-  for i, (filename, imgs, gt_confs, gt_locs) in enumerate(
-    tqdm(batch_generator, total=info['length'],
-             desc='Testing...', unit='images')):
-    boxes, classes, scores = predict(ssd, imgs, default_boxes)
+  for i, (filename, imgs, gt_confs, gt_locs) in enumerate(tqdm(batch_generator, total=info['length'], desc='Testing...', unit='images')):
+    # boxes format: x1, y1, x2, y2
+    boxes, classes, scores = predict(ssd, imgs, default_boxes, conf_threshold=0.5, iou_threshold=0.45, max_detect_num=300)
+
     filename = filename.numpy()[0].decode()
-    original_image = Image.open(
-            os.path.join(info['image_dir'], '{}.jpg'.format(filename)))
-    boxes *= original_image.size * 2
-    visualizer.save_image(
-            original_image, boxes, classes, '{}.jpg'.format(filename))
+    original_image = cv2.imread(os.path.join(info['image_dir'], '{}.jpg'.format(filename)))
+
+    height, width = original_image.shape[:2]
+    boxes *= [width, height, width, height]
+    visualizer.save_image(original_image, boxes, classes, '{}.jpg'.format(filename))
 
     log_file = os.path.join('outputs/detects', '{}.txt')
-
     for cls, box, score in zip(classes, boxes, scores):
       cls_name = info['idx_to_name'][cls - 1]
       with open(log_file.format(cls_name), 'a') as f:
@@ -137,3 +132,4 @@ def main(_):
 if __name__ == '__main__':
   FLAGS = get_args() 
   app.run(main)
+
