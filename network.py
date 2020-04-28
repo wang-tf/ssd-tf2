@@ -23,6 +23,8 @@ class SSD(Model):
             gamma_initializer='glorot_uniform'
         )
         self.extra_layers = create_extra_layers()
+        self.l8, self.l9, self.l10, self.l11, self.l12 = self.extra_layers
+
         self.conf_head_layers = create_conf_head_layers(num_classes)
         self.loc_head_layers = create_loc_head_layers()
 

@@ -121,7 +121,11 @@ def MobileNetV2(input_shape, k, plot_model=False):
     x = _inverted_residual_block(x, 32, (3, 3), t=6, strides=2, n=3)
     x = _inverted_residual_block(x, 64, (3, 3), t=6, strides=2, n=4)
     x = _inverted_residual_block(x, 96, (3, 3), t=6, strides=1, n=3)
-    x = _inverted_residual_block(x, 160, (3, 3), t=6, strides=2, n=3)
+    # x = _inverted_residual_block(x, 160, (3, 3), t=6, strides=2, n=3)  # ssd output
+    x = _bottleneck(x, 160, (3, 3), 6, 2)
+    for i in range(1, n):
+        x = _bottleneck(x, 160, (3, 3), 6, 1, True)
+
     x = _inverted_residual_block(x, 320, (3, 3), t=6, strides=1, n=1)
 
     x = _conv_block(x, 1280, (1, 1), strides=(1, 1))
