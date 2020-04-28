@@ -1,14 +1,16 @@
-from tensorflow.keras import Model
-from tensorflow.keras.applications import VGG16
-import tensorflow.keras.layers as layers
-import tensorflow as tf
-import numpy as np
+#!/usr/bin/env python3
+# coding:utf-8
+
+
 import os
+import numpy as np
+import tensorflow as tf
 
-from layers import create_vgg16_layers, create_extra_layers, create_conf_head_layers, create_loc_head_layers
+# from layers import create_vgg16_layers, create_extra_layers, create_conf_head_layers, create_loc_head_layers
+from vgg16 import VGG16
 
 
-class SSD(Model):
+class SSD(tf.keras.Model):
     """ Class for SSD model
     Attributes:
         num_classes: number of classes
@@ -16,17 +18,18 @@ class SSD(Model):
 
     def __init__(self, num_classes, arch='ssd300'):
         super(SSD, self).__init__()
+        vgg16_model = VGG16()
         self.num_classes = num_classes
-        self.vgg16_conv4, self.vgg16_conv7 = create_vgg16_layers()
-        self.batch_norm = layers.BatchNormalization(
+        self.vgg16_conv4, self.vgg16_conv7 = vgg16_model.create_vgg16_layers()
+        self.batch_norm = tf.keras.layers.BatchNormalization(
             beta_initializer='glorot_uniform',
             gamma_initializer='glorot_uniform'
         )
-        self.extra_layers = create_extra_layers()
+        self.extra_layers = vgg16_model.create_extra_layers()
         self.l8, self.l9, self.l10, self.l11, self.l12 = self.extra_layers
 
-        self.conf_head_layers = create_conf_head_layers(num_classes)
-        self.loc_head_layers = create_loc_head_layers()
+        self.conf_head_layers = vgg16_model.create_conf_head_layers(num_classes)
+        self.loc_head_layers = vgg16_model.create_loc_head_layers()
 
         if arch == 'ssd300':
             self.extra_layers.pop(-1)
@@ -54,7 +57,7 @@ class SSD(Model):
         """ Initialize the VGG16 layers from pretrained weights
             and the rest from scratch using xavier initializer
         """
-        origin_vgg = VGG16(weights='imagenet')
+        origin_vgg = tf.keras.applications.VGG16(weights='imagenet')
         for i in range(len(self.vgg16_conv4.layers)):
             self.vgg16_conv4.get_layer(index=i).set_weights(
                 origin_vgg.get_layer(index=i).get_weights())
@@ -62,20 +65,14 @@ class SSD(Model):
         fc1_weights, fc1_biases = origin_vgg.get_layer(index=-3).get_weights()
         fc2_weights, fc2_biases = origin_vgg.get_layer(index=-2).get_weights()
 
-        conv6_weights = np.random.choice(
-            np.reshape(fc1_weights, (-1,)), (3, 3, 512, 1024))
-        conv6_biases = np.random.choice(
-            fc1_biases, (1024,))
+        conv6_weights = np.random.choice(np.reshape(fc1_weights, (-1,)), (3, 3, 512, 1024))
+        conv6_biases = np.random.choice(fc1_biases, (1024,))
 
-        conv7_weights = np.random.choice(
-            np.reshape(fc2_weights, (-1,)), (1, 1, 1024, 1024))
-        conv7_biases = np.random.choice(
-            fc2_biases, (1024,))
+        conv7_weights = np.random.choice(np.reshape(fc2_weights, (-1,)), (1, 1, 1024, 1024))
+        conv7_biases = np.random.choice(fc2_biases, (1024,))
 
-        self.vgg16_conv7.get_layer(index=2).set_weights(
-            [conv6_weights, conv6_biases])
-        self.vgg16_conv7.get_layer(index=3).set_weights(
-            [conv7_weights, conv7_biases])
+        self.vgg16_conv7.get_layer(index=2).set_weights([conv6_weights, conv6_biases])
+        self.vgg16_conv7.get_layer(index=3).set_weights([conv7_weights, conv7_biases])
 
     def call(self, x):
         """ The forward pass

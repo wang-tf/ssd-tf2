@@ -1,3 +1,7 @@
+#!/usr/bin/env python3
+# coding:utf-8
+
+
 import tensorflow as tf
 
 
@@ -66,8 +70,7 @@ def compute_target(default_boxes, gt_boxes, gt_labels, iou_threshold=0.5):
     best_default_idx = tf.math.argmax(iou, 0)
 
     best_gt_idx = tf.tensor_scatter_nd_update(
-        best_gt_idx,
-        tf.expand_dims(best_default_idx, 1),
+        best_gt_idx, tf.expand_dims(best_default_idx, 1),
         tf.range(best_default_idx.shape[0], dtype=tf.int64))
 
     # Normal way: use a for loop
@@ -78,15 +81,12 @@ def compute_target(default_boxes, gt_boxes, gt_labels, iou_threshold=0.5):
     #         [gt_idx])
 
     best_gt_iou = tf.tensor_scatter_nd_update(
-        best_gt_iou,
-        tf.expand_dims(best_default_idx, 1),
+        best_gt_iou, tf.expand_dims(best_default_idx, 1),
         tf.ones_like(best_default_idx, dtype=tf.float32))
 
     gt_confs = tf.gather(gt_labels, best_gt_idx)
-    gt_confs = tf.where(
-        tf.less(best_gt_iou, iou_threshold),
-        tf.zeros_like(gt_confs),
-        gt_confs)
+    gt_confs = tf.where(tf.less(best_gt_iou, iou_threshold),
+                        tf.zeros_like(gt_confs), gt_confs)
 
     gt_boxes = tf.gather(gt_boxes, best_gt_idx)
     gt_locs = encode(default_boxes, gt_boxes)
@@ -116,7 +116,8 @@ def encode(default_boxes, boxes, variance=[0.1, 0.2]):
     wh_rate = wh_locs / default_boxes[:, 2:]
     wh_log = tf.math.log(wh_rate)
 
-    locs = tf.concat([cxcy_bias_rate / variance[0], wh_log / variance[1]], axis=-1)
+    locs = tf.concat([cxcy_bias_rate / variance[0], wh_log / variance[1]],
+                     axis=-1)
 
     return locs
 
@@ -157,9 +158,9 @@ def transform_corner_to_center(boxes):
         boxes: tensor (num_boxes, 4)
                of format (cx, cy, w, h)
     """
-    center_box = tf.concat([
-        (boxes[..., :2] + boxes[..., 2:]) / 2,
-        boxes[..., 2:] - boxes[..., :2]], axis=-1)
+    center_box = tf.concat([(boxes[..., :2] + boxes[..., 2:]) / 2,
+                            boxes[..., 2:] - boxes[..., :2]],
+                           axis=-1)
 
     return center_box
 
@@ -176,7 +177,9 @@ def transform_center_to_corner(boxes):
     """
     corner_box = tf.concat([
         boxes[..., :2] - boxes[..., 2:] / 2,
-        boxes[..., :2] + boxes[..., 2:] / 2], axis=-1)
+        boxes[..., :2] + boxes[..., 2:] / 2
+    ],
+                           axis=-1)
 
     return corner_box
 
@@ -208,15 +211,14 @@ def compute_nms(boxes, scores, nms_threshold, limit=200):
         row = iou[selected[-1]]
         next_indices = row <= nms_threshold
         # iou[:, ~next_indices] = 1.0
-        iou = tf.where(
-            tf.expand_dims(tf.math.logical_not(next_indices), 0),
-            tf.ones_like(iou, dtype=tf.float32),
-            iou)
+        iou = tf.where(tf.expand_dims(tf.math.logical_not(next_indices), 0),
+                       tf.ones_like(iou, dtype=tf.float32), iou)
 
         if not tf.math.reduce_any(next_indices):
             break
 
-        selected.append(tf.argsort(
-            tf.dtypes.cast(next_indices, tf.int32), direction='DESCENDING')[0].numpy())
+        selected.append(
+            tf.argsort(tf.dtypes.cast(next_indices, tf.int32),
+                       direction='DESCENDING')[0].numpy())
 
     return tf.gather(idx, selected)

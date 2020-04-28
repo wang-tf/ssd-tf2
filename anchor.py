@@ -1,3 +1,6 @@
+#!/usr/bin/env python3
+# coding:utf-8
+
 import itertools
 import math
 import yaml
@@ -26,35 +29,19 @@ def generate_default_boxes(config):
         for i, j in itertools.product(range(fm_size), repeat=2):
             cx = (j + 0.5) / fm_size
             cy = (i + 0.5) / fm_size
-            default_boxes.append([
-                cx,
-                cy,
-                scales[m],
-                scales[m]
-            ])
+            default_boxes.append([cx, cy, scales[m], scales[m]])
 
             default_boxes.append([
-                cx,
-                cy,
+                cx, cy,
                 math.sqrt(scales[m] * scales[m + 1]),
                 math.sqrt(scales[m] * scales[m + 1])
             ])
 
             for ratio in ratios[m]:
                 r = math.sqrt(ratio)
-                default_boxes.append([
-                    cx,
-                    cy,
-                    scales[m] * r,
-                    scales[m] / r
-                ])
+                default_boxes.append([cx, cy, scales[m] * r, scales[m] / r])
 
-                default_boxes.append([
-                    cx,
-                    cy,
-                    scales[m] / r,
-                    scales[m] * r
-                ])
+                default_boxes.append([cx, cy, scales[m] / r, scales[m] * r])
     default_boxes = tf.constant(default_boxes)
     default_boxes = tf.clip_by_value(default_boxes, 0.0, 1.0)
 
@@ -70,10 +57,9 @@ def test():
         config = cfg[arch.upper()]
     except AttributeError:
         raise ValueError('Unknown arhcitecture: {}'.format(arch))
-    
+
     default_boxes = generate_default_boxes(config)
 
 
 if __name__ == '__main__':
     test()
-

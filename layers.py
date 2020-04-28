@@ -1,3 +1,7 @@
+#!/usr/bin/env python3
+# coding:utf-8
+
+
 import tensorflow as tf
 import tensorflow.keras.layers as layers
 from tensorflow.keras import Sequential
