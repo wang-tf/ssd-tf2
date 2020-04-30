@@ -34,7 +34,7 @@ def get_args():
   flags.DEFINE_integer('num_examples', -1, 'image number')
   flags.DEFINE_string('pretrained_type', 'specified', '')
   flags.DEFINE_string('checkpoint_dir', '', 'checkpoint dir')
-  flags.DEFINE_string('checkpoint_path', './checkpoints/ssd_epoch_20.h5', 'checkpoint path')
+  flags.DEFINE_string('checkpoint_path', './checkpoints/ssd_epoch_70.h5', 'checkpoint path')
   flags.DEFINE_string('gpus', '0', 'gpus info')
 
   flags.mark_flag_as_required('data_dir')
