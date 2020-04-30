@@ -85,7 +85,7 @@ class VGG16(Backbone):
             self.conv3_1,
             self.conv3_2,
             self.conv3_3,
-            self.pool3
+            self.pool3,
             # conv4
             self.conv4_1,
             self.conv4_2,
