@@ -1,8 +1,15 @@
 #!/usr/bin/env python3
 # coding:utf-8
 
+import abc
+import tensorflow as tf
 
-class Backbone(object):
+
+class Backbone(tf.keras.Models):
     def __init__(self):
-        pass
+        super().__init__()
+
+    @abc.abstractmethod
+    def call():
+        return NotImplemented
     
