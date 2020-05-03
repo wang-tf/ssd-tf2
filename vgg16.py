@@ -9,183 +9,99 @@ from backbone import Backbone
 class VGG16(Backbone):
     def __init__(self):
         super().__init__()
-        # conv1
-        self.conv1_1 = tf.keras.layers.Conv2D(64, 3, padding='same', activation='relu')
-        self.conv1_2 = tf.keras.layers.Conv2D(64, 3, padding='same', activation='relu')
-        self.pool1 = tf.keras.layers.MaxPool2D(2, 2, padding='same')
-        # conv2
-        self.conv2_1 = tf.keras.layers.Conv2D(128, 3, padding='same', activation='relu')
-        self.conv2_2 = tf.keras.layers.Conv2D(128, 3, padding='same', activation='relu')
-        self.pool2 = tf.keras.layers.MaxPool2D(2, 2, padding='same')
-        # conv3
-        self.conv3_1 = tf.keras.layers.Conv2D(256, 3, padding='same', activation='relu')
-        self.conv3_2 = tf.keras.layers.Conv2D(256, 3, padding='same', activation='relu')
-        self.conv3_3 = tf.keras.layers.Conv2D(256, 3, padding='same', activation='relu')
-        self.pool3 = tf.keras.layers.MaxPool2D(2, 2, padding='same')
-        # conv4
-        self.conv4_1 = tf.keras.layers.Conv2D(512, 3, padding='same', activation='relu')
-        self.conv4_2 = tf.keras.layers.Conv2D(512, 3, padding='same', activation='relu')
-        self.conv4_3 = tf.keras.layers.Conv2D(512, 3, padding='same', activation='relu')
-        self.pool4 = tf.keras.layers.MaxPool2D(2, 2, padding='same')
-        # conv5
-        self.conv5_1 = tf.keras.layers.Conv2D(512, 3, padding='same', activation='relu')
-        self.conv5_2 = tf.keras.layers.Conv2D(512, 3, padding='same', activation='relu')
-        self.conv5_3 = tf.keras.layers.Conv2D(512, 3, padding='same', activation='relu')
+        # block1
+        self.block1_conv1 = tf.keras.layers.Conv2D(64, 3, padding='same', activation='relu', name='block1_conv1')
+        self.block1_conv2 = tf.keras.layers.Conv2D(64, 3, padding='same', activation='relu', name='block1_conv2')
+        self.block1_pool = tf.keras.layers.MaxPool2D(2, 2, padding='same', name='block1_pool')
+        # block2
+        self.block2_conv1 = tf.keras.layers.Conv2D(128, 3, padding='same', activation='relu', name='block2_conv1')
+        self.block2_conv2 = tf.keras.layers.Conv2D(128, 3, padding='same', activation='relu', name='block2_conv2')
+        self.block2_pool = tf.keras.layers.MaxPool2D(2, 2, padding='same', name='block2_pool')
+        # block3
+        self.block3_conv1 = tf.keras.layers.Conv2D(256, 3, padding='same', activation='relu', name='block3_conv1')
+        self.block3_conv2 = tf.keras.layers.Conv2D(256, 3, padding='same', activation='relu', name='block3_conv2')
+        self.block3_conv3 = tf.keras.layers.Conv2D(256, 3, padding='same', activation='relu', name='block3_conv3')
+        self.block3_pool = tf.keras.layers.MaxPool2D(2, 2, padding='same', name='block3_pool')
+        # block4
+        self.block4_conv1 = tf.keras.layers.Conv2D(512, 3, padding='same', activation='relu', name='block4_conv1')
+        self.block4_conv2 = tf.keras.layers.Conv2D(512, 3, padding='same', activation='relu', name='block4_conv2')
+        self.block4_conv3 = tf.keras.layers.Conv2D(512, 3, padding='same', activation='relu', name='block4_conv3')
+        self.block4_pool = tf.keras.layers.MaxPool2D(2, 2, padding='same', name='block4_pool')
+        # block5
+        self.block5_conv1 = tf.keras.layers.Conv2D(512, 3, padding='same', activation='relu', name='block5_conv1')
+        self.block5_conv2 = tf.keras.layers.Conv2D(512, 3, padding='same', activation='relu', name='block5_conv2')
+        self.block5_conv3 = tf.keras.layers.Conv2D(512, 3, padding='same', activation='relu', name='block5_conv3')
+
         # Difference from original VGG16:
         # 5th maxpool layer has kernel size = 3 and stride = 1
-        self.pool5 = tf.keras.layers.MaxPool2D(3, 1, padding='same')
+        self.block5_pool = tf.keras.layers.MaxPool2D(3, 1, padding='same', name='block5_pool')
         # atrous conv2d for 6th block
-        self.conv6_1 = tf.keras.layers.Conv2D(1024, 3, padding='same', dilation_rate=6, activation='relu')
-        self.conv6_2 = tf.keras.layers.Conv2D(1024, 1, padding='same', activation='relu')
+        self.block6_conv1 = tf.keras.layers.Conv2D(1024, 3, padding='same', dilation_rate=6, activation='relu', name='block6_conv1')
+        self.block6_conv2 = tf.keras.layers.Conv2D(1024, 1, padding='same', activation='relu', name='block6_conv2')
 
     def call(self, inputs):
-        output1_1 = self.conv1_1(inputs)
-        output1_2 = self.conv1_2(output1_1)
-        output1 = self.pool1(output1_2)
+        output1_1 = self.block1_conv1(inputs)
+        output1_2 = self.block1_conv2(output1_1)
+        output1 = self.block1_pool(output1_2)
 
-        output2_1 = self.conv2_1(output1)
-        output2_2 = self.conv2_2(output2_1)
-        output2 = self.pool2(output2_2)
+        output2_1 = self.block2_conv1(output1)
+        output2_2 = self.block2_conv2(output2_1)
+        output2 = self.block2_pool(output2_2)
 
-        output3_1 = self.conv3_1(output2)
-        output3_2 = self.conv3_2(output3_1)
-        output3_3 = self.conv3_3(output3_2)
-        output3 = self.pool3(output3_3)
+        output3_1 = self.block3_conv1(output2)
+        output3_2 = self.block3_conv2(output3_1)
+        output3_3 = self.block3_conv3(output3_2)
+        output3 = self.block3_pool(output3_3)
 
-        output4_1 = self.conv4_1(output3)
-        output4_2 = self.conv4_2(output4_1)
-        output4_3 = self.conv4_3(output4_2)
-        output4 = self.pool4(output4_3)
+        output4_1 = self.block4_conv1(output3)
+        output4_2 = self.block4_conv2(output4_1)
+        output4_3 = self.block4_conv3(output4_2)
+        output4 = self.block4_pool(output4_3)
 
-        output5_1 = self.conv5_1(output4)
-        output5_2 = self.conv5_2(output5_1)
-        output5_3 = self.conv5_3(output5_2)
+        output5_1 = self.block5_conv1(output4)
+        output5_2 = self.block5_conv2(output5_1)
+        output5_3 = self.block5_conv3(output5_2)
 
-        vgg16_conv4 = output5_3
+        output5 = self.block5_pool(output5_3)
+        output6_1 = self.block6_conv1(output5)
+        output6_2 = self.block6_conv2(output6_1)
 
-        output5 = self.pool5(output5_3)
-        output6_1 = self.conv6_1(output5)
-        output6_2 = self.conv6_2(output6_1)
-
-        vgg16_conv7 = output6_2
-
-        return vgg16_conv4, vgg16_conv7
-
-    def create_vgg16_layers(self):
-        vgg16_conv4 = [
-            # conv1
-            self.conv1_1,
-            self.conv1_2,
-            self.pool1,
-            # conv2
-            self.conv2_1,
-            self.conv2_2,
-            self.pool2,
-            # conv3
-            self.conv3_1,
-            self.conv3_2,
-            self.conv3_3,
-            self.pool3,
-            # conv4
-            self.conv4_1,
-            self.conv4_2,
-            self.conv4_3,
-            self.pool4,
-            # conv5
-            self.conv5_1,
-            self.conv5_2,
-            self.conv5_3,
-        ]
-
-        x = tf.keras.layers.Input(shape=[None, None, 3])
-        out = x
-        for layer in vgg16_conv4:
-            out = layer(out)
-
-        vgg16_conv4 = tf.keras.Model(x, out)
-
-        vgg16_conv7 = [
-            self.pool5,
-            # atrous conv2d for 6th block
-            self.conv6_1,
-            self.conv6_2,
-        ]
-
-        x = tf.keras.layers.Input(shape=[None, None, 512])
-        out = x
-        for layer in vgg16_conv7:
-            out = layer(out)
-
-        vgg16_conv7 = tf.keras.Model(x, out)
-
-        return vgg16_conv4, vgg16_conv7
+        return output4_3, output6_2 
 
 
-    def create_extra_layers(self):
-        """ Create extra layers
-            8th to 11th blocks
-        """
-        extra_layers = [
-            # 8th block output shape: B, 512, 10, 10
-            tf.keras.Sequential([
-                tf.keras.layers.Conv2D(256, 1, activation='relu'),
-                tf.keras.layers.Conv2D(512, 3, strides=2, padding='same',
-                            activation='relu'),
-            ]),
-            # 9th block output shape: B, 256, 5, 5
-            tf.keras.Sequential([
-                tf.keras.layers.Conv2D(128, 1, activation='relu'),
-                tf.keras.layers.Conv2D(256, 3, strides=2, padding='same',
-                            activation='relu'),
-            ]),
-            # 10th block output shape: B, 256, 3, 3
-            tf.keras.Sequential([
-                tf.keras.layers.Conv2D(128, 1, activation='relu'),
-                tf.keras.layers.Conv2D(256, 3, activation='relu'),
-            ]),
-            # 11th block output shape: B, 256, 1, 1
-            tf.keras.Sequential([
-                tf.keras.layers.Conv2D(128, 1, activation='relu'),
-                tf.keras.layers.Conv2D(256, 3, activation='relu'),
-            ]),
-            # 12th block output shape: B, 256, 1, 1
-            tf.keras.Sequential([
-                tf.keras.layers.Conv2D(128, 1, activation='relu'),
-                tf.keras.layers.Conv2D(256, 4, activation='relu'),
-            ])
-        ]
+class ExtraLayer(tf.keras.layers.Layer):
+    def __init__(self, units, kernel_size, strides):
+        super().__init__()
+        padding = 'same' if strides !=1 else 'valid'
+        self.conv1 = tf.keras.layers.Conv2D(units, 1, activation='relu')
+        self.conv2 = tf.keras.layers.Conv2D(units*2, kernel_size, strides=strides, padding=padding, activation='relu')
 
-        return extra_layers
+    def call(self, inputs):
+        output = self.conv1(inputs)
+        output = self.conv2(output)
+        return output
 
 
-    def create_conf_head_layers(self, num_classes):
-        """ Create layers for classification
-        """
-        conf_head_layers = [
-            tf.keras.layers.Conv2D(4 * num_classes, kernel_size=3, padding='same'),  # for 4th block
-            tf.keras.layers.Conv2D(6 * num_classes, kernel_size=3, padding='same'),  # for 7th block
-            tf.keras.layers.Conv2D(6 * num_classes, kernel_size=3, padding='same'),  # for 8th block
-            tf.keras.layers.Conv2D(6 * num_classes, kernel_size=3, padding='same'),  # for 9th block
-            tf.keras.layers.Conv2D(4 * num_classes, kernel_size=3, padding='same'),  # for 10th block
-            tf.keras.layers.Conv2D(4 * num_classes, kernel_size=3, padding='same'),  # for 11th block
-            tf.keras.layers.Conv2D(4 * num_classes, kernel_size=1)  # for 12th block
-        ]
+class ConfLayer(tf.keras.layers.Layer):
+    def __init__(self, num_anchor, num_classes, kernel_size):
+        super().__init__()
+        padding = 'same' if kernel_size != 1 else 'valid'
 
-        return conf_head_layers
+        self.conv1 = tf.keras.layers.Conv2D(num_anchor * num_classes, kernel_size=kernel_size, padding=padding)
+
+    def call(self, inputs):
+        output = self.conv1(inputs)
+        return output
 
 
-    def create_loc_head_layers(self):
-        """ Create layers for regression
-        """
-        loc_head_layers = [
-            tf.keras.layers.Conv2D(4 * 4, kernel_size=3, padding='same'),
-            tf.keras.layers.Conv2D(6 * 4, kernel_size=3, padding='same'),
-            tf.keras.layers.Conv2D(6 * 4, kernel_size=3, padding='same'),
-            tf.keras.layers.Conv2D(6 * 4, kernel_size=3, padding='same'),
-            tf.keras.layers.Conv2D(4 * 4, kernel_size=3, padding='same'),
-            tf.keras.layers.Conv2D(4 * 4, kernel_size=3, padding='same'),
-            tf.keras.layers.Conv2D(4 * 4, kernel_size=1)
-        ]
+class LocLayer(tf.keras.layers.Layer):
+    def __init__(self, num_anchor, kernel_size):
+        super().__init__()
+        padding = 'same' if kernel_size != 1 else 'valid'
 
-        return loc_head_layers
+        self.conv1 = tf.keras.layers.Conv2D(num_anchor * 4, kernel_size=kernel_size, padding=padding)
+
+    def call(self, inputs):
+        output = self.conv1(inputs)
+        return output
 

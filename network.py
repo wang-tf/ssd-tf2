@@ -6,8 +6,8 @@ import os
 import numpy as np
 import tensorflow as tf
 
-# from layers import create_vgg16_layers, create_extra_layers, create_conf_head_layers, create_loc_head_layers
-from vgg16 import VGG16
+from layers import create_vgg16_layers, create_extra_layers, create_conf_head_layers, create_loc_head_layers
+# from vgg16 import VGG16
 
 
 class SSD(tf.keras.Model):
@@ -18,18 +18,17 @@ class SSD(tf.keras.Model):
 
     def __init__(self, num_classes, arch='ssd300'):
         super(SSD, self).__init__()
-        vgg16_model = VGG16()
         self.num_classes = num_classes
-        self.vgg16_conv4, self.vgg16_conv7 = vgg16_model.create_vgg16_layers()
+        self.vgg16_conv4, self.vgg16_conv7 = create_vgg16_layers()
         self.batch_norm = tf.keras.layers.BatchNormalization(
             beta_initializer='glorot_uniform',
             gamma_initializer='glorot_uniform'
         )
-        self.extra_layers = vgg16_model.create_extra_layers()
+        self.extra_layers = create_extra_layers()
         self.l8, self.l9, self.l10, self.l11, self.l12 = self.extra_layers
 
-        self.conf_head_layers = vgg16_model.create_conf_head_layers(num_classes)
-        self.loc_head_layers = vgg16_model.create_loc_head_layers()
+        self.conf_head_layers = create_conf_head_layers(num_classes)
+        self.loc_head_layers = create_loc_head_layers()
 
         if arch == 'ssd300':
             self.extra_layers.pop(-1)
@@ -88,13 +87,14 @@ class SSD(tf.keras.Model):
         for i in range(len(self.vgg16_conv4.layers)):
             x = self.vgg16_conv4.get_layer(index=i)(x)
             if i == len(self.vgg16_conv4.layers) - 5:
+                print(x.shape)
                 conf, loc = self.compute_heads(self.batch_norm(x), head_idx)
                 confs.append(conf)
                 locs.append(loc)
                 head_idx += 1
 
         x = self.vgg16_conv7(x)
-
+        print(x.shape)
         conf, loc = self.compute_heads(x, head_idx)
 
         confs.append(conf)
@@ -103,6 +103,7 @@ class SSD(tf.keras.Model):
 
         for layer in self.extra_layers:
             x = layer(x)
+            print(x.shape)
             conf, loc = self.compute_heads(x, head_idx)
             confs.append(conf)
             locs.append(loc)

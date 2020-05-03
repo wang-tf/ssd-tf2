@@ -5,7 +5,7 @@ import abc
 import tensorflow as tf
 
 
-class Backbone(tf.keras.Models):
+class Backbone(tf.keras.layers.Layer):
     def __init__(self):
         super().__init__()
 

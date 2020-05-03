@@ -12,7 +12,8 @@ import tensorflow as tf
 
 from voc_data import create_batch_generator
 from anchor import generate_default_boxes
-from network import create_ssd
+# from network import create_ssd
+from ssd import create_ssd
 from losses import create_losses
 
 # need include background
