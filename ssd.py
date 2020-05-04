@@ -10,8 +10,8 @@ import os
 import numpy as np
 import tensorflow as tf
 
-# from layers import create_vgg16_layers, create_extra_layers, create_conf_head_layers, create_loc_head_layers
-from vgg16 import VGG16, ExtraLayer, ConfLayer, LocLayer
+from vgg16 import VGG16
+from other_layer import ExtraLayer, ConfLayer, LocLayer
 
 
 class SSD(tf.keras.Model):
@@ -28,8 +28,6 @@ class SSD(tf.keras.Model):
 
         self.batch_norm = tf.keras.layers.BatchNormalization(beta_initializer='glorot_uniform', gamma_initializer='glorot_uniform')
         
-        # self.extra_layers = self.backbone_layer.create_extra_layers()
-        # self.l8, self.l9, self.l10, self.l11, self.l12 = self.extra_layers
         self.block8 = ExtraLayer(256, 3, 2)
         self.block9 = ExtraLayer(128, 3, 2)
         self.block10 = ExtraLayer(128, 3, 1)
@@ -37,7 +35,6 @@ class SSD(tf.keras.Model):
         self.block12 = ExtraLayer(128, 4, 1)
         self.extra_layers = [self.block8, self.block9, self.block10, self.block11, self.block12]
 
-        # self.conf_head_layers = self.backbone_layer.create_conf_head_layers(num_classes)
         self.conf1 = ConfLayer(4, num_classes, 3)
         self.conf2 = ConfLayer(6, num_classes, 3)
         self.conf3 = ConfLayer(6, num_classes, 3)
@@ -47,7 +44,6 @@ class SSD(tf.keras.Model):
         self.conf7 = ConfLayer(4, num_classes, 1)
         self.conf_head_layers = [self.conf1, self.conf2, self.conf3, self.conf4, self.conf5, self.conf6, self.conf7]
 
-        # self.loc_head_layers = self.backbone_layer.create_loc_head_layers()
         self.loc1 = LocLayer(4, 3)
         self.loc2 = LocLayer(6, 3)
         self.loc3 = LocLayer(6, 3)
@@ -79,27 +75,8 @@ class SSD(tf.keras.Model):
 
         return conf, loc
 
-    def init_vgg16(self):
-        """ Initialize the VGG16 layers from pretrained weights
-            and the rest from scratch using xavier initializer
-        """
-        origin_vgg = tf.keras.applications.VGG16(weights='imagenet')
-        len_vgg16_conv4 = 17
-        weights = []
-        for i in range(len_vgg16_conv4):
-            init_w = origin_vgg.get_layer(index=i+1).get_weights()
-            weights.extend(init_w)
-
-        fc1_weights, fc1_biases = origin_vgg.get_layer(index=-3).get_weights()
-        fc2_weights, fc2_biases = origin_vgg.get_layer(index=-2).get_weights()
-
-        conv6_weights = np.random.choice(np.reshape(fc1_weights, (-1,)), (3, 3, 512, 1024))
-        conv6_biases = np.random.choice(fc1_biases, (1024,))
-
-        conv7_weights = np.random.choice(np.reshape(fc2_weights, (-1,)), (1, 1, 1024, 1024))
-        conv7_biases = np.random.choice(fc2_biases, (1024,))
-        weights.extend([conv6_weights, conv6_biases, conv7_weights, conv7_biases])
-        self.backbone_layer.set_weights(weights)
+    def init(self):
+        self.backbone_layer.init()
 
     def call(self, x):
         """ The forward pass
@@ -146,9 +123,10 @@ def create_ssd(num_classes, arch, pretrained_type,
         net: the SSD model
     """
     net = SSD(num_classes, arch)
-    net(tf.random.normal((1, 512, 512, 3)))
+    net(tf.random.normal((1, 800, 800, 3)))
     if pretrained_type == 'base':
-        net.init_vgg16()
+        # net.init_vgg16()
+        net.init()
     elif pretrained_type == 'latest':
         try:
             paths = [os.path.join(checkpoint_dir, path)

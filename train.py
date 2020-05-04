@@ -12,8 +12,8 @@ import tensorflow as tf
 
 from voc_data import create_batch_generator
 from anchor import generate_default_boxes
-# from network import create_ssd
-from ssd import create_ssd
+# from ssd import create_ssd
+from ssd_mobilenetv2 import create_ssd
 from losses import create_losses
 
 # need include background
@@ -40,7 +40,7 @@ def get_args():
   return FLAGS
 
 
-@tf.function
+#@tf.function
 def train_step(imgs, gt_confs, gt_locs, ssd, criterion, optimizer):
   with tf.GradientTape() as tape:
     confs, locs = ssd(imgs)

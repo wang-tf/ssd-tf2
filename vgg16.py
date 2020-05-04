@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # coding:utf-8 
 
-
+import numpy as np
 import tensorflow as tf
 from backbone import Backbone
 
@@ -67,6 +67,26 @@ class VGG16(Backbone):
         output6_2 = self.block6_conv2(output6_1)
 
         return output4_3, output6_2 
+
+    def init(self):
+        """ Initialize the VGG16 layers from pretrained weights
+        and the rest from scratch using xavier initializer
+        """
+        origin_vgg = tf.keras.applications.VGG16(weights='imagenet')
+        len_vgg16_conv4 = 17
+        weights = []
+        for i in range(len_vgg16_conv4):
+            w_and_b = origin_vgg.get_layer(index=i+1).get_weights()
+            weights.extend(w_and_b)
+
+        fc1_weights, fc1_biases = origin_vgg.get_layer(index=-3).get_weights()
+        fc2_weights, fc2_biases = origin_vgg.get_layer(index=-2).get_weights()
+        conv6_weights = np.random.choice(np.reshape(fc1_weights, (-1)), (3, 3, 512, 1024))
+        conv6_biases = np.random.choice(fc1_biases, (1024, ))
+        conv7_weights = np.random.choice(np.reshape(fc2_weights, (-1)), (1, 1, 1024, 1024))
+        conv7_biases = np.random.choice(fc2_biases, (1024, ))
+        weights.extend([conv6_weights, conv6_biases, conv7_weights, conv7_biases])
+        self.set_weights(weights)
 
 
 class ExtraLayer(tf.keras.layers.Layer):
