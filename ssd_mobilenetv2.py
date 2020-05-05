@@ -27,7 +27,7 @@ class SSD(tf.keras.Model):
         self.num_classes = num_classes
         relu6 = tf.keras.layers.ReLU(6.)
 
-        self.batch_norm = tf.keras.layers.BatchNormalization(beta_initializer='glorot_uniform', gamma_initializer='glorot_uniform')
+        # self.batch_norm = tf.keras.layers.BatchNormalization(beta_initializer='glorot_uniform', gamma_initializer='glorot_uniform')
         
         self.block8 = ExtraLayer(256, 3, 2, activation=relu6)
         self.block9 = ExtraLayer(128, 3, 2, activation=relu6)
@@ -84,7 +84,7 @@ class SSD(tf.keras.Model):
         locs = []
         head_idx = 0
         f1, f2 = self.backbone_layer(x)
-        f1 = self.batch_norm(f1)
+        # f1 = self.batch_norm(f1)
         feature_maps.extend([f1, f2])
 
         x = f2
