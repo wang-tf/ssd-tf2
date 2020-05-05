@@ -246,12 +246,14 @@ class BottleNeck(tf.keras.layers.Layer):
     self.pointwise_conv2 = tf.keras.layers.Conv2D(filters, (1, 1), strides=(1, 1), padding='same')
     self.bn3 = tf.keras.layers.BatchNormalization()
 
-  def build(self, input_shape):
-    tchannel = input_shape[-1] * self.t
-    self.pointwise_conv1 = tf.keras.layers.Conv2D(filters, (1, 1), strides=(1, 1), padding='same')
+  #def build(self, input_shape):
+  #  tchannel = input_shape[-1] * self.t
+  #  self.pointwise_conv1 = tf.keras.layers.Conv2D(filters, (1, 1), strides=(1, 1), padding='same')
 
   def call(self, inputs):
-    output = self.pointwise_conv1(inputs)
+    tchannel = inputs.shape[-1] * self.t
+    output = tf.keras.layers.Conv2D(filters, (1, 1), strides=(1, 1), padding='same')(inputs)
+    # output = self.pointwise_conv1(inputs)
     output = self.bn1(output)
     output = self.relu6_1(output)
     feature_output
