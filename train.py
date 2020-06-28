@@ -85,15 +85,10 @@ def main(_):
       'flip'
     ])  # the patching algorithm is currently causing bottleneck sometimes
 
-  try:
-    ssd = create_ssd(NUM_CLASSES,
+  ssd = create_ssd(NUM_CLASSES,
              FLAGS.arch,
              FLAGS.pretrained_type,
              checkpoint_dir=FLAGS.checkpoint_dir)
-  except Exception as e:
-    print(e)
-    print('Can not create ssd. The program is exiting...')
-    sys.exit()
 
   criterion = create_losses(FLAGS.neg_ratio, NUM_CLASSES)
 

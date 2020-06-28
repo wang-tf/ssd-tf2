@@ -17,13 +17,13 @@ class MobileNetV2(Backbone):
     super().__init__()
     self.block1 = ConvBlock(32, (3, 3), strides=(2, 2))
 
-    self.block2 = InvertedResidualBlock(16, (3, 3), t=1, strides=1, n=1)
-    self.block3 = InvertedResidualBlock(24, (3, 3), t=6, strides=2, n=2)
-    self.block4 = InvertedResidualBlock(32, (3, 3), t=6, strides=2, n=3)
-    self.block5 = InvertedResidualBlock(64, (3, 3), t=6, strides=2, n=4)
-    self.block6 = InvertedResidualBlock(96, (3, 3), t=6, strides=1, n=3)
-    self.block7 = InvertedResidualBlock(160, (3, 3), t=6, strides=2, n=3)  # ssd output
-    self.block8 = InvertedResidualBlock(320, (3, 3), t=6, strides=1, n=1)
+    self.block2 = InvertedResidualBlock(32, 16, (3, 3), t=1, strides=1, n=1)
+    self.block3 = InvertedResidualBlock(16, 24, (3, 3), t=6, strides=2, n=2)
+    self.block4 = InvertedResidualBlock(24, 32, (3, 3), t=6, strides=2, n=3)
+    self.block5 = InvertedResidualBlock(32, 64, (3, 3), t=6, strides=2, n=4)
+    self.block6 = InvertedResidualBlock(64, 96, (3, 3), t=6, strides=1, n=3)
+    self.block7 = InvertedResidualBlock(96, 160, (3, 3), t=6, strides=2, n=3)  # ssd output
+    self.block8 = InvertedResidualBlock(160, 320, (3, 3), t=6, strides=1, n=1)
     self.block9 = ConvBlock(1280, (1, 1), strides=(1, 1))
 
   def call(self, inputs):
@@ -85,7 +85,7 @@ class BottleNeck(tf.keras.layers.Layer):
     This function defines a basic bottleneck structure.
 
     # Arguments
-        inputs: Tensor, input tensor of conv layer.
+        input_channel: Integer, the input channel shape.
         filters: Integer, the dimensionality of the output space.
         kernel: An integer or tuple/list of 2 integers, specifying the
             width and height of the 2D convolution window.
@@ -104,7 +104,7 @@ class BottleNeck(tf.keras.layers.Layer):
     self.t = t
     self.r = r
 
-    self.pointwise_conv1 = None
+    self.pointwise_conv1 = tf.keras.layers.Conv2D(input_channel*t, (1, 1), strides=(1, 1), padding='same')
     self.bn1 = tf.keras.layers.BatchNormalization()
     self.relu6_1 = tf.keras.layers.ReLU(6.)
 
@@ -120,12 +120,10 @@ class BottleNeck(tf.keras.layers.Layer):
   #  self.pointwise_conv1 = tf.keras.layers.Conv2D(tchannel, (1, 1), strides=(1, 1), padding='same')
 
   def call(self, inputs):
-    tchannel = inputs.shape[-1] * self.t
-    output = tf.keras.layers.Conv2D(tchannel, (1, 1), strides=(1, 1), padding='same')(inputs)
-    # output = self.pointwise_conv1(inputs)
+    output = self.pointwise_conv1(inputs)
     output = self.bn1(output)
     output = self.relu6_1(output)
-    feature_output
+    feature_output = output
 
     output = self.depthwise_conv(output)
     output = self.bn2(output)
@@ -157,14 +155,14 @@ class InvertedResidualBlock(tf.keras.layers.Layer):
     # Returns
         Output tensor.
   """
-  def __init__(self, filters, kernel, t, strides, n):
+  def __init__(self, input_channel, filters, kernel, t, strides, n):
     super().__init__()
 
-    self.bottleneck = BottleNeck(filters, kernel, t, strides)
+    self.bottleneck = BottleNeck(input_channel, filters, kernel, t, strides)
 
     self.bottlenecks = []
     for i in range(1, n):
-      self.bottlenecks.append(BottleNeck(filters, kernel, t, 1, True))
+      self.bottlenecks.append(BottleNeck(input_channel, filters, kernel, t, 1, True))
 
   def call(self, inputs):
     output, feature_output = self.bottleneck(inputs)

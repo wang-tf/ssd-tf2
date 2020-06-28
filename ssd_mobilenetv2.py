@@ -116,6 +116,7 @@ def create_ssd(num_classes, arch, pretrained_type,
         net: the SSD model
     """
     net = SSD(num_classes, arch)
+    # net.summary()
     net(tf.random.normal((1, 800, 800, 3)))
     if pretrained_type == 'base':
         # net.init_vgg16()
